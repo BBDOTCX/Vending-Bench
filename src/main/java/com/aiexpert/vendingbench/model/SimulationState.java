@@ -15,8 +15,11 @@ public class SimulationState {
     private Inventory storage = new Inventory();
     private Inventory vendingMachine = new Inventory();
     private List<Map<String, String>> emailInbox = new ArrayList<>();
-    private List<Map<String, String>> sentEmails = new ArrayList<>(); // New field
+    private List<Map<String, String>> sentEmails = new ArrayList<>();
     private int totalUnitsSold = 0;
+
+    @JsonIgnore
+    private final Map<String, Item> productCatalog;
 
     @JsonIgnore
     private Map<Integer, Map<String, Integer>> pendingDeliveries = new ConcurrentHashMap<>();
@@ -24,9 +27,17 @@ public class SimulationState {
     public SimulationState(double initialCashBalance, double dailyFee) {
         this.cashBalance = initialCashBalance;
         this.dailyFee = dailyFee;
+        
         storage.addOrUpdateItem("Chips", 50, 1.75, 0.30);
         storage.addOrUpdateItem("Candy", 50, 1.25, 0.25);
         storage.addOrUpdateItem("Soda", 50, 2.00, 0.50);
+
+        this.productCatalog = new ConcurrentHashMap<>(storage.getItems());
+    }
+
+    @JsonIgnore
+    public Map<String, Item> getProductCatalog() {
+        return productCatalog;
     }
 
     public void incrementTurn() { this.turn++; }
@@ -38,7 +49,6 @@ public class SimulationState {
     public void addEmail(Map<String, String> email) { this.emailInbox.add(email); }
     public void clearEmails() { this.emailInbox.clear(); }
 
-    // Method to add sent email
     public void addSentEmail(String recipient, String body) {
         Map<String, String> sentEmail = Map.of(
             "recipient", recipient,
@@ -59,7 +69,6 @@ public class SimulationState {
         });
     }
 
-    // --- Getters and Setters ---
     public int getTurn() { return turn; }
     public void setTurn(int turn) { this.turn = turn; }
     public int getDay() { return day; }
@@ -73,9 +82,9 @@ public class SimulationState {
     public void setVendingMachine(Inventory vendingMachine) { this.vendingMachine = vendingMachine; }
     public List<Map<String, String>> getEmailInbox() { return emailInbox; }
     public void setEmailInbox(List<Map<String, String>> emailInbox) { this.emailInbox = emailInbox; }
+    public List<Map<String, String>> getSentEmails() { return sentEmails; }
+    public void setSentEmails(List<Map<String, String>> sentEmails) { this.sentEmails = sentEmails; }
     public int getTotalUnitsSold() { return totalUnitsSold; }
     public void setTotalUnitsSold(int totalUnitsSold) { this.totalUnitsSold = totalUnitsSold; }
     public Map<Integer, Map<String, Integer>> getPendingDeliveries() { return pendingDeliveries; }
-    public List<Map<String, String>> getSentEmails() { return sentEmails; }
-    public void setSentEmails(List<Map<String, String>> sentEmails) { this.sentEmails = sentEmails; }
 }

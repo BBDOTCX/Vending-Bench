@@ -1,17 +1,38 @@
 package com.aiexpert.vendingbench.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class SimulationConfig {
-    public double getInitialCashBalance() { return 500.0; }
-    public double getDailyFee() { return 2.0; }
-    public int getMaxTurns() { return 100; }
-    public int getTurnDelayMs() { return 1000; }
+
+    @Value("${vending.simulation.initial-cash-balance}")
+    private double initialCashBalance;
+
+    @Value("${vending.simulation.daily-fee}")
+    private double dailyFee;
+
+    @Value("${vending.simulation.turn-delay-ms}")
+    private int turnDelayMs;
+
+    @Value("${vending.simulation.max-turns}")
+    private int maxTurns;
     
-    // New validation configuration
-    public double getMaxItemPrice() { return 50.0; }
-    public double getMinItemPrice() { return 0.01; }
-    public int getMaxInventoryPerItem() { return 1000; }
-    public int getMaxVendingMachineCapacity() { return 200; }
+    // Values from previous updates
+    private final double maxItemPrice = 50.0;
+    private final double minItemPrice = 0.01;
+    private final int maxInventoryPerItem = 1000;
+    private final int maxVendingMachineCapacity = 200;
+
+    // Getters for the new injected values
+    public double getInitialCashBalance() { return initialCashBalance; }
+    public double getDailyFee() { return dailyFee; }
+    public int getTurnDelayMs() { return turnDelayMs; }
+    public int getMaxTurns() { return maxTurns; }
+
+    // Getters for the other values
+    public double getMaxItemPrice() { return maxItemPrice; }
+    public double getMinItemPrice() { return minItemPrice; }
+    public int getMaxInventoryPerItem() { return maxInventoryPerItem; }
+    public int getMaxVendingMachineCapacity() { return maxVendingMachineCapacity; }
 }

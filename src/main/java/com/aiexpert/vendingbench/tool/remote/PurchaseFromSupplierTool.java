@@ -35,8 +35,8 @@ public class PurchaseFromSupplierTool implements Tool {
                 continue;
             }
 
-            // Ensure the item exists in our master list (the storage) to get its wholesale cost
-            Item masterItem = state.getStorage().getItem(name);
+            // <<< THIS IS THE FIX: Check against the permanent product catalog, not the changing storage inventory.
+            Item masterItem = state.getProductCatalog().get(name);
             if (masterItem == null) {
                 errorBuilder.append("Item '").append(name).append("' is not a valid item and cannot be ordered.\n");
                 continue;
@@ -60,7 +60,7 @@ public class PurchaseFromSupplierTool implements Tool {
         }
 
         state.setCashBalance(state.getCashBalance() - totalCost);
-        int deliveryDays = 2 + random.nextInt(2); // Arrives in 2-3 days
+        int deliveryDays = 2 + random.nextInt(2);
         int arrivalDay = state.getDay() + deliveryDays;
 
         state.addPendingDelivery(arrivalDay, itemsToOrder);
