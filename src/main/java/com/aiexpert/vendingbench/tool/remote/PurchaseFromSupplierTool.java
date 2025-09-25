@@ -1,7 +1,9 @@
 package com.aiexpert.vendingbench.tool.remote;
 
+import com.aiexpert.vendingbench.model.Item;
 import com.aiexpert.vendingbench.model.SimulationState;
 import com.aiexpert.vendingbench.tool.Tool;
+import com.aiexpert.vendingbench.util.ValidationUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.HashMap;
@@ -19,14 +21,38 @@ public class PurchaseFromSupplierTool implements Tool {
 
         double totalCost = 0;
         Map<String, Integer> itemsToOrder = new HashMap<>();
+        StringBuilder errorBuilder = new StringBuilder();
 
         for (JsonNode itemNode : params.get("items")) {
             String name = itemNode.path("name").asText();
             int quantity = itemNode.path("quantity").asInt();
-            // Get the wholesale cost from the master list in storage
-            double wholesaleCost = state.getStorage().getItems().getOrDefault(name, new com.aiexpert.vendingbench.model.Item(name, 0, 0, 0.5)).getWholesaleCost();
+
+            try {
+                ValidationUtils.validateItemName(name);
+                ValidationUtils.validateQuantity(quantity);
+            } catch (IllegalArgumentException e) {
+                errorBuilder.append("Invalid order item '").append(name).append("': ").append(e.getMessage()).append("\n");
+                continue;
+            }
+
+            // Ensure the item exists in our master list (the storage) to get its wholesale cost
+            Item masterItem = state.getStorage().getItem(name);
+            if (masterItem == null) {
+                errorBuilder.append("Item '").append(name).append("' is not a valid item and cannot be ordered.\n");
+                continue;
+            }
+
+            double wholesaleCost = masterItem.getWholesaleCost();
             totalCost += wholesaleCost * quantity;
             itemsToOrder.put(name, quantity);
+        }
+        
+        if (!errorBuilder.isEmpty()) {
+            return "Error: Purchase failed due to invalid items.\n" + errorBuilder.toString().trim();
+        }
+
+        if (itemsToOrder.isEmpty()) {
+            return "Error: No valid items were specified for purchase.";
         }
 
         if (totalCost > state.getCashBalance()) {

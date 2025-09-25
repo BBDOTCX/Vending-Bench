@@ -15,7 +15,6 @@ D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\tool\vend
 D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\logging\EventLogger.java
 D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\tool\remote\WaitForNextDayTool.java
 D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\config\WebConfig.java
-D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\tool\remote\SendEmailTool.java
 D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\tool\remote\ReadEmailTool.java
 D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\tool\vending\CollectCashTool.java
 D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\tool\vending\SetPricesTool.java
@@ -23,10 +22,12 @@ D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\agent\Act
 D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\controller\dto\SimulationStateResponse.java
 D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\logging\LogEntry.java
 D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\llm\OllamaService.java
+D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\controller\dto\AddTurnsRequest.java
 D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\tool\remote\InternetSearchTool.java
 D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\controller\SimulationController.java
 D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\model\Item.java
 D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\VendingBenchApplication.java
+D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\tool\remote\ComposeEmailToContactTool.java
 D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\tool\Tool.java
 D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\agent\Agent.java
 D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\environment\CustomerSimulation.java

@@ -17,6 +17,11 @@ public class WaitForNextDayTool implements Tool {
     public String execute(JsonNode params, SimulationState state) {
         state.incrementDay();
         String salesReport = customerSimulation.runDailySales(state);
-        return "Advanced to Day " + state.getDay() + ". Daily fee of $" + state.getDailyFee() + " applied. " + salesReport;
+        return String.format(
+            "Advanced to Day %d. Daily fee of $%.2f applied. %s",
+            state.getDay(),
+            state.getDailyFee(),
+            salesReport
+        );
     }
 }

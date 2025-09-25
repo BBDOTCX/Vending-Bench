@@ -1,5 +1,6 @@
 package com.aiexpert.vendingbench.controller;
 
+import com.aiexpert.vendingbench.controller.dto.AddTurnsRequest;
 import com.aiexpert.vendingbench.controller.dto.HumanInputRequest;
 import com.aiexpert.vendingbench.controller.dto.SimulationStartRequest;
 import com.aiexpert.vendingbench.controller.dto.SimulationStateResponse;
@@ -27,11 +28,20 @@ public class SimulationController {
             request.getApiKey(),
             request.getModelName(),
             request.getPersona(),
-            request.getMaxTurns()
+            request.getMaxTurns(),
+            request.isVerboseLogging(),
+            request.isHumanHelpTimeout(),
+            request.isDisableHumanHelp()
         );
         return ResponseEntity.ok().build();
     }
     
+    @PostMapping("/add-turns")
+    public ResponseEntity<Void> addTurns(@RequestBody AddTurnsRequest request) {
+        simulationEngine.addTurns(request.getTurns());
+        return ResponseEntity.ok().build();
+    }
+
     @PostMapping("/resume")
     public ResponseEntity<Void> resumeWithHumanInput(@RequestBody HumanInputRequest request) {
         simulationEngine.resumeWithHumanInput(request.getPrompt());
@@ -48,7 +58,7 @@ public class SimulationController {
         response.setSimulationState(simulationEngine.getCurrentState());
         response.setNetWorth(simulationEngine.calculateNetWorth());
         response.setMainEventLog(simulationEngine.getMainEventLog());
-        response.setVerboseLog(simulationEngine.getVerboseLog());
+        
         if (simulationEngine.getCurrentState() != null) {
             response.setEmailInbox(simulationEngine.getCurrentState().getEmailInbox());
         }

@@ -15,6 +15,6 @@ public class CollectCashTool implements Tool {
         }
         machine.setCashHeld(0);
         state.setCashBalance(state.getCashBalance() + cashCollected);
-        return String.format("Collected $%.2f from the vending machine. New main balance is $%.2f.", cashCollected, state.getCashBalance());
+        return String.format("Collected $%.2f from the vending machine. Your new main balance is $%.2f.", cashCollected, state.getCashBalance());
     }
 }

@@ -4,6 +4,7 @@
     const resetButton = document.getElementById('resetButton');
     const exportButton = document.getElementById('exportButton');
     const resumeButton = document.getElementById('resume-button');
+    const addTurnsButton = document.getElementById('addTurnsButton');
 
     let pollingInterval;
     let fullState = {};
@@ -15,6 +16,14 @@
     resetButton.addEventListener('click', resetSimulation);
     exportButton.addEventListener('click', exportData);
     resumeButton.addEventListener('click', resumeWithHumanInput);
+    addTurnsButton.addEventListener('click', addTurns);
+
+    const autoScrollView = (element) => {
+        const isScrolledToBottom = element.scrollHeight - element.clientHeight <= element.scrollTop + 20;
+        if (isScrolledToBottom) {
+            element.scrollTop = element.scrollHeight;
+        }
+    };
 
     function startSimulation() {
         const apiKey = document.getElementById('apiKey').value;
@@ -22,20 +31,19 @@
         const modelName = document.getElementById('modelName').value;
         const persona = document.getElementById('persona').value;
         const maxTurns = parseInt(document.getElementById('maxTurns').value, 10);
-
-        if (provider !== 'ollama' && !apiKey) {
-            alert('API Key is required for the selected provider.');
-            return;
-        }
+        const verboseLogging = document.getElementById('verboseLogging').checked;
+        const humanHelpTimeout = document.getElementById('humanHelpTimeout').checked;
+        const disableHumanHelp = document.getElementById('disableHumanHelp').checked;
 
         fetch(`${API_BASE_URL}/start`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ provider, apiKey, modelName, persona, maxTurns }),
+            body: JSON.stringify({ provider, apiKey, modelName, persona, maxTurns, verboseLogging, humanHelpTimeout, disableHumanHelp }),
         })
         .then(response => {
             if (response.ok) {
                 setControlsState(true);
+                document.getElementById('add-turns-section').classList.add('hidden');
                 pollingInterval = setInterval(fetchState, 1000);
             } else {
                 alert('Failed to start simulation. Check the console for errors.');
@@ -45,6 +53,30 @@
             console.error('Error starting simulation:', error);
             alert('Failed to start simulation. Is the Java backend running?');
         });
+    }
+
+    function addTurns() {
+        const turnsToAdd = parseInt(document.getElementById('addTurnsInput').value, 10);
+        if (isNaN(turnsToAdd) || turnsToAdd <= 0) {
+            alert('Please enter a positive number of turns to add.');
+            return;
+        }
+
+        fetch(`${API_BASE_URL}/add-turns`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ turns: turnsToAdd }),
+        })
+        .then(response => {
+            if (response.ok) {
+                document.getElementById('add-turns-section').classList.add('hidden');
+                setControlsState(true);
+                pollingInterval = setInterval(fetchState, 1000);
+            } else {
+                alert('Failed to add turns.');
+            }
+        })
+        .catch(error => console.error('Error adding turns:', error));
     }
 
     function pauseSimulation() {
@@ -89,6 +121,10 @@
                 updateUI(data);
                 if (data.status === 'Finished' || data.status.startsWith('Error')) {
                     clearInterval(pollingInterval);
+                    if (data.status === 'Finished') {
+                        document.getElementById('add-turns-section').classList.remove('hidden');
+                        pauseButton.disabled = true;
+                    }
                 }
             })
             .catch(error => {
@@ -108,25 +144,22 @@
             document.getElementById('day-counter').textContent = data.simulationState.day || 0;
             document.getElementById('cash-balance').textContent = `$${data.simulationState.cashBalance.toFixed(2)}`;
             updateInbox(data.simulationState.emailInbox);
-            if (data.simulationState.sentEmails) {
-                updateSentEmails(data.simulationState.sentEmails);
-            }
+            updateSentEmails(data.simulationState.sentEmails);
+            updateVendingMachineDisplay(data.simulationState.vendingMachine);
         }
         
         document.getElementById('net-worth').textContent = `$${(data.netWorth || 0).toFixed(2)}`;
         
         const mainLog = document.getElementById('mainLog');
         if (data.mainEventLog) {
-            mainLog.value = data.mainEventLog.join('\n');
-            mainLog.scrollTop = mainLog.scrollHeight;
-        }
-
-        if (data.verboseLog) {
-            document.getElementById('verboseLog').value = JSON.stringify(data.verboseLog, null, 2);
+            const filteredLog = data.mainEventLog.filter(line => !line.includes("---STORAGE---"));
+            mainLog.value = filteredLog.join('\n');
+            autoScrollView(mainLog);
         }
 
         const humanInputSection = document.getElementById('human-input-section');
-        if (data.status === 'Awaiting Human Input') {
+        // <<< THIS IS THE FIX: Show the box if paused for ANY reason.
+        if (data.status === 'Awaiting Human Input' || data.status === 'Paused') {
             humanInputSection.classList.remove('hidden');
         } else {
             humanInputSection.classList.add('hidden');
@@ -142,7 +175,7 @@
             emptyMsg.textContent = 'Inbox is empty.';
             inboxContainer.appendChild(emptyMsg);
         } else {
-            inbox.forEach(email => {
+            inbox.slice().reverse().forEach(email => {
                 const emailItem = document.createElement('div');
                 emailItem.className = 'email-item';
                 const header = document.createElement('div');
@@ -156,12 +189,11 @@
                 inboxContainer.appendChild(emailItem);
             });
         }
+        autoScrollView(inboxContainer);
     }
 
     function updateSentEmails(sentEmails) {
         const sentEmailsContainer = document.getElementById('sentEmailsContainer');
-        if (!sentEmailsContainer) return;
-        
         sentEmailsContainer.innerHTML = '';
         if (!sentEmails || sentEmails.length === 0) {
             const emptyMsg = document.createElement('p');
@@ -169,7 +201,6 @@
             emptyMsg.textContent = 'No emails sent yet.';
             sentEmailsContainer.appendChild(emptyMsg);
         } else {
-            // Display latest first
             sentEmails.slice().reverse().forEach(email => {
                 const emailItem = document.createElement('div');
                 emailItem.className = 'sent-email-item';
@@ -182,6 +213,44 @@
                 emailItem.appendChild(header);
                 emailItem.appendChild(body);
                 sentEmailsContainer.appendChild(emailItem);
+            });
+        }
+        autoScrollView(sentEmailsContainer);
+    }
+    
+    function updateVendingMachineDisplay(machineState) {
+        const display = document.getElementById('vendingMachineDisplay');
+        if (!display || !machineState) return;
+
+        const cashDisplay = display.querySelector('.machine-cash-display');
+        const grid = display.querySelector('.machine-grid');
+
+        cashDisplay.textContent = `Cash Held: $${machineState.cashHeld.toFixed(2)}`;
+        grid.innerHTML = '';
+
+        const items = Object.values(machineState.items);
+
+        if (items.length === 0) {
+            const emptySlot = document.createElement('div');
+            emptySlot.className = 'machine-item empty';
+            emptySlot.textContent = 'Empty';
+            grid.appendChild(emptySlot);
+        } else {
+            items.forEach(item => {
+                const itemSlot = document.createElement('div');
+                itemSlot.className = 'machine-item';
+                
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'item-name';
+                nameDiv.textContent = item.name;
+
+                const detailsDiv = document.createElement('div');
+                detailsDiv.className = 'item-details';
+                detailsDiv.innerHTML = `<span class="item-qty">${item.quantity}</span> units @ $${item.price.toFixed(2)}`;
+
+                itemSlot.appendChild(nameDiv);
+                itemSlot.appendChild(detailsDiv);
+                grid.appendChild(itemSlot);
             });
         }
     }
@@ -201,10 +270,11 @@
         document.getElementById('cash-balance').textContent = '$0.00';
         document.getElementById('net-worth').textContent = '$0.00';
         document.getElementById('mainLog').value = '';
-        document.getElementById('verboseLog').value = '';
         document.getElementById('agent-thought').textContent = '...';
+        document.getElementById('add-turns-section').classList.add('hidden');
         updateInbox([]);
         updateSentEmails([]);
+        updateVendingMachineDisplay({ cashHeld: 0, items: {} });
     }
 
     function exportData() {

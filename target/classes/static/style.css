@@ -77,6 +77,24 @@ textarea {
     min-height: 60px;
 }
 
+.options-group {
+    background-color: #f9f9f9;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.option-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.option-item label {
+    margin-bottom: 0;
+    font-weight: normal;
+}
+
 .button-group {
     display: flex;
     gap: 0.5rem;
@@ -99,14 +117,14 @@ button {
 #pauseButton:hover { background-color: #e67e22; }
 #resetButton { background-color: #e74c3c; color: white; }
 #resetButton:hover { background-color: #c0392b; }
-#exportButton, #resume-button { background-color: #3498db; color: white; margin-top: 1rem; }
-#exportButton:hover, #resume-button:hover { background-color: #2980b9; }
+#exportButton, #resume-button, #addTurnsButton { background-color: #3498db; color: white; margin-top: 1rem; }
+#exportButton:hover, #resume-button:hover, #addTurnsButton:hover { background-color: #2980b9; }
 button:disabled { background-color: #bdc3c7; cursor: not-allowed; }
 
 .hidden { display: none !important; }
 
 /* Main Display & Data Logs */
-#mainLog, #verboseLog {
+#mainLog {
     flex-grow: 1;
     width: 100%;
     box-sizing: border-box;
@@ -161,7 +179,7 @@ button:disabled { background-color: #bdc3c7; cursor: not-allowed; }
     flex: 1;
 }
 .email-container {
-    height: 200px;
+    height: 150px;
     overflow-y: auto;
     border: 1px solid #ccc;
     border-radius: 4px;
@@ -194,6 +212,86 @@ button:disabled { background-color: #bdc3c7; cursor: not-allowed; }
 .empty-inbox-message, .empty-sent-emails-message {
     text-align: center;
     color: #999;
-    padding-top: 3rem;
+    padding-top: 2rem;
     font-style: italic;
+}
+
+/* Vending Machine Display */
+#vendingMachineDisplay {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: #34495e;
+    border: 5px solid #2c3e50;
+    border-radius: 8px;
+    padding: 10px;
+    margin-top: 1rem;
+}
+
+.machine-header {
+    text-align: center;
+    padding: 0.5rem;
+    background-color: #2c3e50;
+    color: white;
+    font-weight: bold;
+    font-size: 1.2rem;
+    border-radius: 6px 6px 0 0;
+    letter-spacing: 2px;
+}
+
+.machine-cash-display {
+    text-align: right;
+    padding: 0.25rem 0.5rem;
+    background-color: #000;
+    color: #2ecc71;
+    font-family: "SFMono-Regular", Consolas, monospace;
+    margin: 5px 0;
+}
+
+.machine-grid {
+    flex-grow: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 8px;
+    background-color: #2c3e50;
+    padding: 8px;
+    overflow-y: auto;
+    min-height: 100px;
+}
+
+.machine-item {
+    background-color: #ecf0f1;
+    border: 1px solid #bdc3c7;
+    border-radius: 4px;
+    padding: 8px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
+}
+
+.machine-item.empty {
+    background-color: #3a536b;
+    border: 1px dashed #7f8c8d;
+    color: #7f8c8d;
+    align-items: center;
+    justify-content: center;
+    font-style: italic;
+}
+
+.item-name {
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: #2c3e50;
+}
+
+.item-details {
+    margin-top: 5px;
+    font-size: 0.8rem;
+    color: #3498db;
+}
+
+.item-qty {
+    font-weight: bold;
 }

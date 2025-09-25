@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class ReadEmailTool implements Tool {
@@ -17,13 +18,19 @@ public class ReadEmailTool implements Tool {
             return "Your email inbox is empty.";
         }
 
+        AtomicInteger counter = new AtomicInteger(1);
         String allEmails = inbox.stream()
-            .map(email -> "From: " + email.get("sender") + "\nBody:\n" + email.get("body"))
-            .collect(Collectors.joining("\n\n---\n\n"));
+            .map(email -> String.format(
+                "--- EMAIL %d ---\nFrom: %s\nBody: %s\n",
+                counter.getAndIncrement(),
+                email.get("sender"),
+                email.get("body")
+            ))
+            .collect(Collectors.joining("\n"));
         
         // Reading emails consumes them
         state.clearEmails();
 
-        return "You have read all emails. The inbox is now empty. The content was:\n\n" + allEmails;
+        return "You have read all emails from your inbox. The content was:\n\n" + allEmails;
     }
 }

@@ -23,8 +23,7 @@ public class RestockMachineTool implements Tool {
         JsonNode itemsNode = params.get("items");
         StringBuilder resultBuilder = new StringBuilder();
         int itemsRestocked = 0;
-
-        // Calculate current vending machine total
+        
         int currentVendingTotal = state.getVendingMachine().getItems().values()
             .stream()
             .mapToInt(Item::getQuantity)
@@ -50,7 +49,6 @@ public class RestockMachineTool implements Tool {
                 continue;
             }
 
-            // Check vending machine capacity
             if (currentVendingTotal + quantity > config.getMaxVendingMachineCapacity()) {
                 resultBuilder.append("Skipped ").append(itemName).append(": Would exceed vending machine capacity.\n");
                 continue;
@@ -64,13 +62,20 @@ public class RestockMachineTool implements Tool {
 
             int amountToMove = Math.min(quantity, storageItem.getQuantity());
 
-            state.getStorage().removeItem(itemName, amountToMove);
-            state.getVendingMachine().addItem(new Item(
+            Item newItem = new Item(
                 storageItem.getName(),
                 amountToMove,
                 storageItem.getPrice(),
                 storageItem.getWholesaleCost()
-            ));
+            );
+            
+            newItem.setElasticity(storageItem.getElasticity());
+            newItem.setBaseSales(storageItem.getBaseSales());
+            newItem.setReferencePrice(storageItem.getReferencePrice());
+
+            state.getStorage().removeItem(itemName, amountToMove);
+            state.getVendingMachine().addItem(newItem);
+
             itemsRestocked++;
             currentVendingTotal += amountToMove;
             resultBuilder.append("Successfully moved ").append(amountToMove).append(" of ").append(itemName).append(" to vending machine.\n");

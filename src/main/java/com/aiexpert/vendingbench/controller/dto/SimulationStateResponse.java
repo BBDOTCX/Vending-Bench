@@ -1,6 +1,5 @@
 package com.aiexpert.vendingbench.controller.dto;
 
-import com.aiexpert.vendingbench.logging.LogEntry;
 import com.aiexpert.vendingbench.model.SimulationState;
 import java.util.List;
 import java.util.Map;
@@ -13,10 +12,10 @@ public class SimulationStateResponse {
     private SimulationState simulationState;
     private double netWorth;
     private List<String> mainEventLog;
-    private List<LogEntry> verboseLog;
+    // private List<LogEntry> verboseLog; // REMOVED
     private List<Map<String, String>> emailInbox;
 
-    // Getters and Setters
+    // Getters and Setters (verboseLog getter/setter removed)
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public String getMainAgentStatus() { return mainAgentStatus; }
@@ -31,8 +30,6 @@ public class SimulationStateResponse {
     public void setNetWorth(double netWorth) { this.netWorth = netWorth; }
     public List<String> getMainEventLog() { return mainEventLog; }
     public void setMainEventLog(List<String> mainEventLog) { this.mainEventLog = mainEventLog; }
-    public List<LogEntry> getVerboseLog() { return verboseLog; }
-    public void setVerboseLog(List<LogEntry> verboseLog) { this.verboseLog = verboseLog; }
     public List<Map<String, String>> getEmailInbox() { return emailInbox; }
     public void setEmailInbox(List<Map<String, String>> emailInbox) { this.emailInbox = emailInbox; }
 }

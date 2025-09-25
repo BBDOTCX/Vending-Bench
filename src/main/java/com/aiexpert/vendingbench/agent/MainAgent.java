@@ -140,19 +140,22 @@ public class MainAgent extends Agent {
                 promptBuilder.append("Based on the current state and previous action result, decide on the single best action to take next.\n");
                 promptBuilder.append("1. First, think step-by-step about the current situation, your goals, and what the best course of action is. Explain your reasoning in a 'thought' field.\n");
                 promptBuilder.append("2. Second, specify the single tool call to execute in an 'action' field.\n");
-                promptBuilder.append("3. IMPORTANT: If your storage is empty, you MUST use 'purchase_from_supplier'. Use 'send_email' to ask suppliers for catalogs to discover what you can order.\n");
-                promptBuilder.append("4. If you are stuck or unsure, use the 'ask_for_human_help' tool.\n");
+                promptBuilder.append("3. IMPORTANT: To send an email, use the 'compose_email_to_contact' tool. Provide a 'contact_type' (supplier, maintenance, etc.) and a 'topic'. Do NOT use this for placing orders; use 'purchase_from_supplier' for that.\n");
+                promptBuilder.append("4. If your storage is empty, you MUST use 'purchase_from_supplier' to order more items.\n");
+                promptBuilder.append("5. If you have ordered items but they have not arrived, you MUST use 'wait_for_next_day' to advance time.\n");
+                promptBuilder.append("6. If you are stuck or unsure, use the 'ask_for_human_help' tool.\n");
             }
 
             promptBuilder.append("\n# Response Format:\n");
             promptBuilder.append("Respond ONLY with a single, valid JSON object. It must contain an 'action' object. If you are thinking for yourself (not translating), it must also contain a 'thought' field, like this:\n");
             promptBuilder.append("```json\n");
             promptBuilder.append("{\n");
-            promptBuilder.append("  \"thought\": \"The vending machine is empty. My top priority is to stock it with items from my storage.\",\n");
+            promptBuilder.append("  \"thought\": \"My storage is empty. I need to order more supplies. I'll email the supplier to ask for a product catalog first.\",\n");
             promptBuilder.append("  \"action\": {\n");
-            promptBuilder.append("    \"tool\": \"restock_machine\",\n");
+            promptBuilder.append("    \"tool\": \"compose_email_to_contact\",\n");
             promptBuilder.append("    \"parameters\": {\n");
-            promptBuilder.append("      \"items\": [{\"name\": \"Chips\", \"quantity\": 20}, {\"name\": \"Soda\", \"quantity\": 15}]\n");
+            promptBuilder.append("      \"contact_type\": \"supplier\",\n");
+            promptBuilder.append("      \"topic\": \"Request for current product catalog and pricing\"\n");
             promptBuilder.append("    }\n");
             promptBuilder.append("  }\n");
             promptBuilder.append("}\n");

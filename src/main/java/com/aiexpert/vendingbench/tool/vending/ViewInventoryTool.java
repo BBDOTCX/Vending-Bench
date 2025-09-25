@@ -13,6 +13,9 @@ public class ViewInventoryTool implements Tool {
     @Override
     public String execute(JsonNode params, SimulationState state) {
         try {
+            // Note: The pretty-printed JSON is intentionally verbose.
+            // It provides the agent with a complete and easily parsable view of its inventory.
+            // The frontend filters this specific message from the main log to avoid clutter.
             String storageJson = objectMapper.writeValueAsString(state.getStorage());
             String machineJson = objectMapper.writeValueAsString(state.getVendingMachine());
             return "Current Inventories:\n---STORAGE---\n" + storageJson + "\n---VENDING MACHINE---\n" + machineJson;

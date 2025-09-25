@@ -7,6 +7,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 public class GetMoneyBalanceTool implements Tool {
     @Override
     public String execute(JsonNode params, SimulationState state) {
-        return String.format("Current cash balance is: $%.2f", state.getCashBalance());
+        return String.format("Your current main cash balance is: $%.2f", state.getCashBalance());
     }
 }
