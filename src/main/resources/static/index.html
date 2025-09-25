@@ -1,0 +1,97 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vending-Bench Simulation</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Vending-Bench Simulation</h1>
+    </header>
+    <div class="container">
+        <div class="column" id="controls-column">
+            <h2>Controls</h2>
+            <div class="control-group">
+                <label for="providerSelect">LLM Provider</label>
+                <select id="providerSelect">
+                    <option value="gemini" selected>Google Gemini</option>
+                    <option value="openai">OpenAI</option>
+                    <option value="anthropic">Anthropic</option>
+                    <option value="ollama">Ollama (Local)</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="apiKey">API Key</label>
+                <input type="password" id="apiKey" placeholder="Enter API Key (not needed for Ollama)">
+            </div>
+            <div class="control-group">
+                <label for="modelName">Model Name (Optional)</label>
+                <input type="text" id="modelName" placeholder="e.g., gpt-4o, claude-3-opus-20240229">
+            </div>
+            <div class="control-group">
+                <label for="persona">Agent Persona</label>
+                <textarea id="persona" rows="4">A meticulous and profit-oriented business manager focused on long-term growth.</textarea>
+            </div>
+            <div class="control-group">
+                <label for="maxTurns">Max Turns</label>
+                <input type="number" id="maxTurns" value="100">
+            </div>
+            <div class="button-group">
+                <button id="startButton">Start</button>
+                <button id="pauseButton" disabled>Pause/Resume</button>
+                <button id="resetButton" disabled>Reset</button>
+            </div>
+            <div id="human-input-section" class="control-group hidden">
+                <hr>
+                <h3>Human Intervention</h3>
+                <p>The agent is paused and requires your help. Please provide a clear instruction.</p>
+                <textarea id="human-prompt" rows="3" placeholder="e.g., Purchase 50 chips and 50 soda from the supplier."></textarea>
+                <button id="resume-button">Resume with Input</button>
+            </div>
+        </div>
+
+        <div class="column" id="main-display-column">
+            <h2>Main Display</h2>
+            <div class="status-panel">
+                <div class="status-item"><strong>Simulation Status:</strong> <span id="sim-status">Idle</span></div>
+                <div class="status-item"><strong>Main Agent:</strong> <span id="main-agent-status">Idle</span></div>
+                <div class="status-item"><strong>Sub Agent:</strong> <span id="sub-agent-status">Idle</span></div>
+                <div class="status-item"><strong>Turn:</strong> <span id="turn-counter">0</span></div>
+                <div class="status-item"><strong>Day:</strong> <span id="day-counter">0</span></div>
+                <div class="status-item"><strong>Cash:</strong> <span id="cash-balance">$0.00</span></div>
+                <div class="status-item"><strong>Net Worth:</strong> <span id="net-worth">$0.00</span></div>
+            </div>
+            <div class="agent-thought-panel">
+                <h3>Agent's Last Thought</h3>
+                <p id="agent-thought">...</p>
+            </div>
+            <h3>Main Event Log</h3>
+            <textarea id="mainLog" readonly></textarea>
+        </div>
+
+        <div class="column" id="data-column">
+            <h2>Data Logs</h2>
+            <div class="email-section">
+                <div class="email-column">
+                    <h3>Inbox</h3>
+                    <div id="inboxContainer" class="email-container">
+                        <p class="empty-inbox-message">Inbox is empty.</p>
+                    </div>
+                </div>
+                <div class="email-column">
+                    <h3>Sent Emails</h3>
+                    <div id="sentEmailsContainer" class="email-container">
+                         <p class="empty-sent-emails-message">No emails sent yet.</p>
+                    </div>
+                </div>
+            </div>
+            <h3>Verbose Event Log (JSON)</h3>
+            <textarea id="verboseLog" readonly></textarea>
+            <button id="exportButton">Export Data</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
