@@ -32,6 +32,7 @@ public class SimulationState {
         storage.addOrUpdateItem("Candy", 50, 1.25, 0.25);
         storage.addOrUpdateItem("Soda", 50, 2.00, 0.50);
 
+        // Create the permanent catalog from the initial state of the storage
         this.productCatalog = new ConcurrentHashMap<>(storage.getItems());
     }
 

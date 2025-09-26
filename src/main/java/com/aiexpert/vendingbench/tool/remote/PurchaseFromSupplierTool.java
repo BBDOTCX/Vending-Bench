@@ -35,7 +35,7 @@ public class PurchaseFromSupplierTool implements Tool {
                 continue;
             }
 
-            // <<< THIS IS THE FIX: Check against the permanent product catalog, not the changing storage inventory.
+            // Check against the permanent product catalog, not the changing storage inventory.
             Item masterItem = state.getProductCatalog().get(name);
             if (masterItem == null) {
                 errorBuilder.append("Item '").append(name).append("' is not a valid item and cannot be ordered.\n");
