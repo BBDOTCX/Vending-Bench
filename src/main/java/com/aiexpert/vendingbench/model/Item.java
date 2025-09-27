@@ -8,10 +8,12 @@ public class Item {
     private double price;
     private double wholesaleCost;
 
-    // Properties for demand simulation, ignored in JSON sent to LLM
-    @JsonIgnore private double elasticity;
-    @JsonIgnore private double referencePrice;
-    @JsonIgnore private int baseSales;
+    @JsonIgnore
+    private double elasticity;
+    @JsonIgnore
+    private double referencePrice;
+    @JsonIgnore
+    private int baseSales;
 
     // Default constructor for JSON deserialization
     public Item() {}
@@ -22,8 +24,21 @@ public class Item {
         this.price = price;
         this.wholesaleCost = wholesaleCost;
     }
+    
+    // **FIX: ADDED THIS COPY CONSTRUCTOR**
+    // This allows creating a new Item object from an existing one,
+    // which is needed for safe calculations.
+    public Item(Item other) {
+        this.name = other.name;
+        this.quantity = other.quantity;
+        this.price = other.price;
+        this.wholesaleCost = other.wholesaleCost;
+        this.elasticity = other.elasticity;
+        this.referencePrice = other.referencePrice;
+        this.baseSales = other.baseSales;
+    }
 
-    // Getters and Setters
+    // --- Getters and Setters ---
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
     public int getQuantity() { return quantity; }

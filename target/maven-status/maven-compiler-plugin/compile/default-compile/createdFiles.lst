@@ -11,6 +11,7 @@ com\aiexpert\vendingbench\tool\vending\SetPricesTool.class
 com\aiexpert\vendingbench\llm\OllamaService.class
 com\aiexpert\vendingbench\service\SimulationEngine.class
 com\aiexpert\vendingbench\tool\vending\CollectCashTool.class
+com\aiexpert\vendingbench\tool\vending\WaitForNextDayTool.class
 com\aiexpert\vendingbench\controller\SimulationController.class
 com\aiexpert\vendingbench\agent\SubAgent.class
 com\aiexpert\vendingbench\environment\CustomerSimulation.class
@@ -32,8 +33,8 @@ com\aiexpert\vendingbench\tool\Tool.class
 com\aiexpert\vendingbench\tool\vending\RestockMachineTool.class
 com\aiexpert\vendingbench\tool\remote\ReadEmailTool.class
 com\aiexpert\vendingbench\tool\remote\InternetSearchTool.class
+com\aiexpert\vendingbench\model\SalesReport.class
 com\aiexpert\vendingbench\tool\vending\ViewInventoryTool.class
-com\aiexpert\vendingbench\tool\remote\WaitForNextDayTool.class
 com\aiexpert\vendingbench\util\ValidationUtils.class
 com\aiexpert\vendingbench\controller\dto\AddTurnsRequest.class
 com\aiexpert\vendingbench\controller\dto\HumanInputRequest.class

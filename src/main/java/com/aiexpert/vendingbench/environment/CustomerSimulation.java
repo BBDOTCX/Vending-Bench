@@ -3,8 +3,9 @@ package com.aiexpert.vendingbench.environment;
 import com.aiexpert.vendingbench.llm.LLMService;
 import com.aiexpert.vendingbench.llm.LLMServiceProvider;
 import com.aiexpert.vendingbench.logging.EventLogger;
+import com.aiexpert.vendingbench.model.Inventory;
 import com.aiexpert.vendingbench.model.Item;
-import com.aiexpert.vendingbench.model.SimulationState;
+import com.aiexpert.vendingbench.model.SalesReport;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
@@ -14,7 +15,6 @@ import java.time.LocalDate;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Random;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 public class CustomerSimulation {
@@ -54,51 +54,39 @@ public class CustomerSimulation {
         }
     }
 
-    public String runDailySales(SimulationState state) {
-        StringBuilder report = new StringBuilder("Daily Sales Report:\n");
-        AtomicInteger dailyTotalUnitsSold = new AtomicInteger();
+    public SalesReport simulateDailySales(Inventory vendingMachineInventory, int day) {
+        StringBuilder reportDetails = new StringBuilder("Daily Sales Report:\n");
+        int dailyTotalUnitsSold = 0;
+        double dailyTotalRevenue = 0.0;
 
-        state.getVendingMachine().getItems().values().forEach(item -> {
+        for (Item item : vendingMachineInventory.getClonedItems().values()) {
             if (item.getQuantity() > 0 && item.getPrice() > 0) {
-                int sales = calculateSales(item, state.getDay());
-                int actualSales = Math.min(sales, item.getQuantity());
+                int potentialSales = calculateSales(item, day);
+                int actualSales = Math.min(potentialSales, item.getQuantity());
 
                 if (actualSales > 0) {
-                    // Update vending machine inventory
-                    item.setQuantity(item.getQuantity() - actualSales);
                     double revenue = actualSales * item.getPrice();
-                    state.getVendingMachine().addCash(revenue);
-                    dailyTotalUnitsSold.addAndGet(actualSales);
-                    report.append(String.format("- Sold %d units of %s for $%.2f.\n", actualSales, item.getName(), revenue));
+                    dailyTotalUnitsSold += actualSales;
+                    dailyTotalRevenue += revenue;
+                    reportDetails.append(String.format("- Sold %d units of %s for $%.2f.\n", actualSales, item.getName(), revenue));
                 }
             }
-        });
-        
-        // Remove empty items from vending machine
-        state.getVendingMachine().getItems().values().removeIf(item -> item.getQuantity() <= 0);
+        }
 
-        int totalSold = dailyTotalUnitsSold.get();
-        state.setTotalUnitsSold(state.getTotalUnitsSold() + totalSold);
-        String summary = String.format("A total of %d units were sold today.", totalSold);
-        logger.log("CUSTOMER_SALES", "CustomerSimulation", summary, Map.of("details", report.toString().trim()));
-        return summary;
+        String summary = String.format("A total of %d units were sold today.", dailyTotalUnitsSold);
+        logger.log("CUSTOMER_SALES", "CustomerSimulation", summary, Map.of("details", reportDetails.toString().trim()));
+
+        return new SalesReport(dailyTotalUnitsSold, dailyTotalRevenue, reportDetails.toString());
     }
     
-    private int calculateSales(Item item, int day) {
-        if (item.getReferencePrice() <= 0) return 0; // Avoid division by zero
-        // Price effect
+    public int calculateSales(Item item, int day) {
+        if (item.getReferencePrice() <= 0) return 0;
         double priceRatio = item.getPrice() / item.getReferencePrice();
         double priceEffect = Math.pow(priceRatio, item.getElasticity());
-
-        // Day of week effect (weekends are busier)
         DayOfWeek dayOfWeek = LocalDate.ofEpochDay(day).getDayOfWeek();
         double dayMultiplier = (dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY) ? 1.5 : 1.0;
-        
-        // Random noise
-        double noise = 0.8 + (1.2 - 0.8) * random.nextDouble(); // between 0.8 and 1.2
-
+        double noise = 0.8 + (1.2 - 0.8) * random.nextDouble();
         double calculatedSales = item.getBaseSales() * priceEffect * dayMultiplier * noise;
-        
         return (int) Math.round(Math.max(0, calculatedSales));
     }
 }

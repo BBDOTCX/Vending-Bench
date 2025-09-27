@@ -13,8 +13,8 @@ D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\llm\LLMSe
 D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\tool\vending\ValidationUtils.java
 D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\tool\vending\ViewInventoryTool.java
 D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\logging\EventLogger.java
-D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\tool\remote\WaitForNextDayTool.java
 D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\config\WebConfig.java
+D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\tool\vending\WaitForNextDayTool.java
 D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\tool\remote\ReadEmailTool.java
 D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\tool\vending\CollectCashTool.java
 D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\tool\vending\SetPricesTool.java
@@ -34,6 +34,7 @@ D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\environme
 D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\llm\AnthropicService.java
 D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\service\SimulationEngine.java
 D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\model\SimulationState.java
+D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\model\SalesReport.java
 D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\agent\MainAgent.java
 D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\controller\dto\SimulationStartRequest.java
 D:\Vending Bench\vending-bench\src\main\java\com\aiexpert\vendingbench\llm\OpenAIService.java
