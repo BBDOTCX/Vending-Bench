@@ -2,33 +2,32 @@
 <configuration>
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
 
-    <property name="LOGS" value="./logs"/>
-
-    <appender name="Console" class="ch.qos.logback.core.ConsoleAppender">
-        <layout class="ch.qos.logback.classic.PatternLayout">
-            <Pattern>%d{ISO8601} %-5level [%thread] %logger{36} - %msg%n</Pattern>
-        </layout>
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+            <charset>utf8</charset>
+        </encoder>
     </appender>
 
-    <appender name="VerboseJsonFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <appender name="VERBOSE_JSON_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>D:/Vending Bench/vending-bench/logs/verbose.log</file>
-        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-            <Pattern>%msg%n</Pattern> </encoder>
-
+        
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${LOGS}/archived/verbose-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-                <maxFileSize>10MB</maxFileSize>
-            </timeBasedFileNamingAndTriggeringPolicy>
+            <fileNamePattern>./logs/archived/verbose-%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
         </rollingPolicy>
+
+        <encoder>
+            <pattern>%msg%n</pattern>
+        </encoder>
     </appender>
 
-    <logger name="VerboseJsonLogger" level="info" additivity="false">
-        <appender-ref ref="VerboseJsonFile"/>
+    <logger name="VerboseJsonLogger" level="INFO" additivity="false">
+        <appender-ref ref="VERBOSE_JSON_FILE"/>
     </logger>
-    
-    <root level="info">
-        <appender-ref ref="Console"/>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
     </root>
 
 </configuration>

@@ -174,8 +174,6 @@ public class SimulationEngine {
                     lastDayProcessed = state.getDay();
                 }
 
-                logger.log("TURN_START", "SimulationEngine", "--- Turn " + state.getTurn() + " (Day " + state.getDay() + ") ---");
-                
                 Action plannedAction = mainAgent.act(state, availableTools);
                 logger.log("TOOL_CALL", mainAgent.getName(), "Planned action: " + plannedAction.toolName());
 
@@ -191,6 +189,15 @@ public class SimulationEngine {
                 logger.log("TOOL_RESULT", subAgent.getName(), "Execution finished.", Map.of("result", result));
 
                 mainAgent.updateHistory(result);
+
+                Map<String, Object> turnDetails = new HashMap<>();
+                turnDetails.put("turn", state.getTurn());
+                turnDetails.put("day", state.getDay());
+                turnDetails.put("thought", mainAgent.getLastThought());
+                turnDetails.put("action", plannedAction);
+                turnDetails.put("result", result);
+                turnDetails.put("state", state);
+                logVerbose("TURN_DATA", "SimulationEngine", turnDetails);
 
                 state.incrementTurn();
                 Thread.sleep(config.getSimulation().getTurnDelayMs());
@@ -215,6 +222,11 @@ public class SimulationEngine {
             StringBuilder deliveryReport = new StringBuilder();
             todaysDeliveries.forEach((itemName, quantity) -> {
                 Item masterItem = state.getStorage().getItem(itemName);
+                if (masterItem == null) {
+                    // Fallback to product catalog if not in storage
+                    masterItem = state.getProductCatalog().get(itemName);
+                }
+
                 if (masterItem != null) {
                     state.getStorage().addOrUpdateItem(itemName, quantity, masterItem.getPrice(), masterItem.getWholesaleCost());
                     deliveryReport.append(String.format("%d units of %s, ", quantity, itemName));

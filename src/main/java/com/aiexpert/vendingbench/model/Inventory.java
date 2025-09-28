@@ -14,8 +14,8 @@ public class Inventory {
                 return new Item(name, quantity, price, wholesaleCost);
             } else {
                 v.setQuantity(v.getQuantity() + quantity);
-                v.setPrice(price);
-                v.setWholesaleCost(wholesaleCost);
+                // Note: Price and wholesaleCost are not updated here to preserve original values
+                // unless it's a new item.
                 return v;
             }
         });
@@ -24,7 +24,7 @@ public class Inventory {
     public void addItem(Item itemToAdd) {
         items.compute(itemToAdd.getName(), (k, existingItem) -> {
             if (existingItem == null) {
-                return new Item(itemToAdd); // Use copy constructor
+                return new Item(itemToAdd);
             } else {
                 existingItem.setQuantity(existingItem.getQuantity() + itemToAdd.getQuantity());
                 return existingItem;
@@ -38,14 +38,13 @@ public class Inventory {
             item.setQuantity(Math.max(0, newQuantity));
             return item;
         });
-        items.values().removeIf(item -> item.getQuantity() <= 0);
+
+        // --- THIS LINE WAS THE BUG. IT HAS BEEN REMOVED. ---
+        // items.values().removeIf(item -> item.getQuantity() <= 0);
+        // We should not remove items from the map when their quantity is zero,
+        // as they still need to exist as a known product type.
     }
-    
-    /**
-     * **FIX: ADDED THIS METHOD**
-     * Creates a deep copy of the items map to allow for safe iteration.
-     * @return A new Map containing clones of the items.
-     */
+
     public Map<String, Item> getClonedItems() {
         return this.items.entrySet().stream()
             .collect(Collectors.toMap(Map.Entry::getKey, e -> new Item(e.getValue())));
