@@ -1,7 +1,7 @@
 package com.aiexpert.vendingbench.environment;
 
 import com.aiexpert.vendingbench.llm.LLMService;
-import com.aiexpert.vendingbench.llm.LLMServiceProvider;
+import com.aiexpert.vendingbench.llm.LLMServiceFactory;
 import com.aiexpert.vendingbench.logging.EventLogger;
 import com.aiexpert.vendingbench.model.SimulationState;
 import org.springframework.stereotype.Service;
@@ -11,22 +11,22 @@ import java.util.Map;
 
 @Service
 public class EmailSimulation {
-    private final LLMServiceProvider llmServiceProvider;
+    private final LLMServiceFactory llmServiceFactory;
     private final EventLogger logger;
     private final Map<String, String> contactProfiles;
 
-    public EmailSimulation(LLMServiceProvider llmServiceProvider, EventLogger logger) {
-        this.llmServiceProvider = llmServiceProvider;
+    public EmailSimulation(LLMServiceFactory llmServiceFactory, EventLogger logger) {
+        this.llmServiceFactory = llmServiceFactory;
         this.logger = logger;
         this.contactProfiles = initializeContactProfiles();
     }
 
     private Map<String, String> initializeContactProfiles() {
         Map<String, String> profiles = new HashMap<>();
-        profiles.put("supplier@globalsnacks.com", "You are a wholesale snack supplier. You sell bulk quantities of chips, candy, and beverages. You're business-focused and provide pricing information.");
-        profiles.put("maintenance@vendingtech.com", "You are a vending machine maintenance technician. You help with technical issues, repairs, and equipment upgrades.");
-        profiles.put("marketing@localads.com", "You are a marketing consultant specializing in small business promotion and customer acquisition strategies.");
-        profiles.put("finance@businessbank.com", "You are a business banker who helps with loans, financial advice, and business accounts.");
+        profiles.put("supplier@globalsnacks.com", "You are a helpful but busy wholesale snack supplier. You sell bulk quantities of standard items. You respond to inquiries about products and pricing professionally and concisely.");
+        profiles.put("maintenance@vendingtech.com", "You are a friendly vending machine maintenance technician. You respond to reports of malfunctions and confirm that you will dispatch someone to investigate.");
+        profiles.put("marketing@localads.com", "You are an energetic marketing consultant. You are eager to help small businesses grow and respond enthusiastically to inquiries about promotion strategies.");
+        profiles.put("finance@businessbank.com", "You are a professional business banker. You respond formally to questions about loans and financial services, often suggesting an in-person meeting.");
         return profiles;
     }
 
@@ -37,7 +37,7 @@ public class EmailSimulation {
         }
 
         logger.log("EMAIL_SENT", "MainAgent", "Email sent to " + recipient,
-                       Map.of("body", body, "recipient", recipient));
+                      Map.of("body", body, "recipient", recipient));
 
         String replyBody = generateResponse(recipient, body);
         
@@ -55,14 +55,15 @@ public class EmailSimulation {
 
     private String generateResponse(String recipient, String emailBody) {
         String profile = getContactProfile(recipient);
-        LLMService llmService = llmServiceProvider.getActiveService();
+        LLMService llmService = llmServiceFactory.getActiveService();
 
-        // REVISED PROMPT for clarity and conciseness
         String prompt = String.format(
-            "%s\n\n" +
-            "A vending machine business owner sent you the following email:\n\n" +
+            "You are a Sub-Agent acting as a business contact. Your persona is: '%s'.\n\n" +
+            "A vending machine business owner sent you the following email:\n" +
             "\"%s\"\n\n" +
-            "Your task is to respond professionally and concisely. Your response should be a few sentences long, directly addressing their inquiry. Do not include a subject line, salutation, or closing. Respond ONLY with the email body text.",
+            "Your task is to craft a professional and brief reply that is consistent with your persona. " +
+            "The reply should be only a few sentences. " +
+            "IMPORTANT: Respond ONLY with the raw text of the email body. Do not include a subject line, salutation (like 'Dear Sir'), or closing (like 'Sincerely').",
             profile, emailBody
         );
 
@@ -70,7 +71,7 @@ public class EmailSimulation {
             return llmService.generate(prompt);
         } catch (Exception e) {
             logger.log("ERROR", "EmailSimulation", "Failed to generate email response for " + recipient);
-            return "Thank you for your email. I'll get back to you soon with more information.";
+            return "Thank you for your email. We have received your message and will get back to you shortly.";
         }
     }
 

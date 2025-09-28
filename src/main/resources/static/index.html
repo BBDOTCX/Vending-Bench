@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vending-Bench Simulation</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <header>
@@ -93,6 +94,10 @@
         </div>
 
         <div class="column" id="data-column">
+            <div class="performance-chart-container">
+                <h3>Net Worth Over Time</h3>
+                <canvas id="netWorthChart"></canvas>
+            </div>
             <div class="email-section">
                 <div class="email-column">
                     <h3>Inbox</h3>

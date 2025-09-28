@@ -2,7 +2,7 @@ package com.aiexpert.vendingbench.tool.remote;
 
 import com.aiexpert.vendingbench.environment.EmailSimulation;
 import com.aiexpert.vendingbench.llm.LLMService;
-import com.aiexpert.vendingbench.llm.LLMServiceProvider;
+import com.aiexpert.vendingbench.llm.LLMServiceFactory;
 import com.aiexpert.vendingbench.model.SimulationState;
 import com.aiexpert.vendingbench.tool.Tool;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -10,7 +10,7 @@ import java.util.Map;
 
 public class ComposeEmailToContactTool implements Tool {
     private final EmailSimulation emailSimulation;
-    private final LLMServiceProvider llmServiceProvider;
+    private final LLMServiceFactory llmServiceFactory;
     private static final Map<String, String> CONTACT_MAP = Map.of(
         "supplier", "supplier@globalsnacks.com",
         "maintenance", "maintenance@vendingtech.com",
@@ -18,9 +18,9 @@ public class ComposeEmailToContactTool implements Tool {
         "finance", "finance@businessbank.com"
     );
 
-    public ComposeEmailToContactTool(EmailSimulation emailSimulation, LLMServiceProvider llmServiceProvider) {
+    public ComposeEmailToContactTool(EmailSimulation emailSimulation, LLMServiceFactory llmServiceFactory) {
         this.emailSimulation = emailSimulation;
-        this.llmServiceProvider = llmServiceProvider;
+        this.llmServiceFactory = llmServiceFactory;
     }
 
     @Override
@@ -37,7 +37,7 @@ public class ComposeEmailToContactTool implements Tool {
             return "Error: Unknown contact_type '" + contactType + "'. Valid types are: " + String.join(", ", CONTACT_MAP.keySet());
         }
 
-        LLMService llmService = llmServiceProvider.getActiveService();
+        LLMService llmService = llmServiceFactory.getActiveService();
         String prompt = String.format(
             "You are a business professional writing an email. Your task is to write a concise, professional email body to a %s about the following topic: '%s'. " +
             "The email should be 2-3 sentences. IMPORTANT: Respond ONLY with the raw text of the email body, with no salutation (like 'Dear Sir'), sign-off, or any other surrounding text.",

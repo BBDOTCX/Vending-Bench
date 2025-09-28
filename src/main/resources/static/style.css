@@ -169,6 +169,13 @@ button:disabled { background-color: #bdc3c7; cursor: not-allowed; }
     color: #2c3e50;
 }
 
+/* Chart Container */
+.performance-chart-container {
+    height: 200px;
+    margin-bottom: 1rem;
+    position: relative;
+}
+
 /* Email Display */
 .email-section {
     display: flex;

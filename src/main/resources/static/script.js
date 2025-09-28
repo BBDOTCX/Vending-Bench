@@ -8,6 +8,18 @@
 
     let pollingInterval;
     let fullState = {};
+    let netWorthChart;
+    let chartData = {
+        labels: [],
+        datasets: [{
+            label: 'Net Worth',
+            data: [],
+            borderColor: '#3498db',
+            backgroundColor: 'rgba(52, 152, 219, 0.2)',
+            fill: true,
+            tension: 0.1
+        }]
+    };
 
     const API_BASE_URL = 'http://localhost:8080/api/simulation';
 
@@ -24,6 +36,34 @@
             element.scrollTop = element.scrollHeight;
         }
     };
+
+    function initializeChart() {
+        const ctx = document.getElementById('netWorthChart').getContext('2d');
+        netWorthChart = new Chart(ctx, {
+            type: 'line',
+            data: chartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        ticks: {
+                            callback: function(value, index, values) {
+                                return '$' + value.toFixed(2);
+                            }
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Turn'
+                        }
+                    }
+                }
+            }
+        });
+    }
 
     function startSimulation() {
         const apiKey = document.getElementById('apiKey').value;
@@ -140,12 +180,21 @@
         document.getElementById('agent-thought').textContent = data.mainAgentThought || '...';
         
         if (data.simulationState) {
-            document.getElementById('turn-counter').textContent = data.simulationState.turn || 0;
+            const turn = data.simulationState.turn || 0;
+            document.getElementById('turn-counter').textContent = turn;
             document.getElementById('day-counter').textContent = data.simulationState.day || 0;
             document.getElementById('cash-balance').textContent = `$${data.simulationState.cashBalance.toFixed(2)}`;
             updateInbox(data.simulationState.emailInbox);
             updateSentEmails(data.simulationState.sentEmails);
             updateVendingMachineDisplay(data.simulationState.vendingMachine);
+            
+            // Update chart data
+            const lastTurnInChart = chartData.labels[chartData.labels.length - 1];
+            if (turn > 0 && turn !== lastTurnInChart) {
+                chartData.labels.push(turn);
+                chartData.datasets[0].data.push(data.netWorth);
+                netWorthChart.update();
+            }
         }
         
         document.getElementById('net-worth').textContent = `$${(data.netWorth || 0).toFixed(2)}`;
@@ -274,6 +323,13 @@
         updateInbox([]);
         updateSentEmails([]);
         updateVendingMachineDisplay({ cashHeld: 0, items: {} });
+
+        // Reset chart data
+        chartData.labels = [];
+        chartData.datasets[0].data = [];
+        if (netWorthChart) {
+            netWorthChart.update();
+        }
     }
 
     function exportData() {
@@ -286,4 +342,6 @@
         link.click();
         URL.revokeObjectURL(url);
     }
+    
+    initializeChart();
 });

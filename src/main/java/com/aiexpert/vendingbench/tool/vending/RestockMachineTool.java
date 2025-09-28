@@ -1,6 +1,6 @@
 package com.aiexpert.vendingbench.tool.vending;
 
-import com.aiexpert.vendingbench.config.SimulationConfig;
+import com.aiexpert.vendingbench.config.SimulationDefaults;
 import com.aiexpert.vendingbench.model.Item;
 import com.aiexpert.vendingbench.model.SimulationState;
 import com.aiexpert.vendingbench.tool.Tool;
@@ -8,10 +8,10 @@ import com.aiexpert.vendingbench.util.ValidationUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 
 public class RestockMachineTool implements Tool {
-    private final SimulationConfig config;
+    private final SimulationDefaults defaults;
 
-    public RestockMachineTool(SimulationConfig config) {
-        this.config = config;
+    public RestockMachineTool(SimulationDefaults defaults) {
+        this.defaults = defaults;
     }
 
     @Override
@@ -25,7 +25,7 @@ public class RestockMachineTool implements Tool {
         int itemsRestocked = 0;
         
         int currentVendingTotal = state.getVendingMachine().getItems().values()
-            .stream()
+             .stream()
             .mapToInt(Item::getQuantity)
             .sum();
 
@@ -49,7 +49,7 @@ public class RestockMachineTool implements Tool {
                 continue;
             }
 
-            if (currentVendingTotal + quantity > config.getSimulation().getMaxVendingMachineCapacity()) {
+            if (currentVendingTotal + quantity > defaults.getSimulation().getMaxVendingMachineCapacity()) {
                 resultBuilder.append("Skipped ").append(itemName).append(": Would exceed vending machine capacity.\n");
                 continue;
             }

@@ -3,18 +3,14 @@ package com.aiexpert.vendingbench.service;
 import com.aiexpert.vendingbench.agent.Action;
 import com.aiexpert.vendingbench.agent.MainAgent;
 import com.aiexpert.vendingbench.agent.SubAgent;
-import com.aiexpert.vendingbench.config.SimulationConfig;
+import com.aiexpert.vendingbench.config.SimulationDefaults;
 import com.aiexpert.vendingbench.environment.CustomerSimulation;
-import com.aiexpert.vendingbench.environment.EmailSimulation;
-import com.aiexpert.vendingbench.llm.LLMServiceProvider;
+import com.aiexpert.vendingbench.llm.LLMServiceFactory;
 import com.aiexpert.vendingbench.logging.EventLogger;
 import com.aiexpert.vendingbench.model.Item;
 import com.aiexpert.vendingbench.model.SimulationState;
 import com.aiexpert.vendingbench.tool.Tool;
-import com.aiexpert.vendingbench.tool.memory.ReadFromMemoryTool;
-import com.aiexpert.vendingbench.tool.memory.WriteToMemoryTool;
-import com.aiexpert.vendingbench.tool.remote.*;
-import com.aiexpert.vendingbench.tool.vending.*;
+import com.aiexpert.vendingbench.util.StateCloner;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -39,14 +35,16 @@ public class SimulationEngine {
     public static final String HUMAN_HELP_TOOL = "ask_for_human_help";
     private static final long HUMAN_HELP_TIMEOUT_MS = 30000;
 
-    private final LLMServiceProvider llmServiceProvider;
-    private final SimulationConfig config;
+    private final LLMServiceFactory llmServiceFactory;
+    private final SimulationDefaults defaults;
     private final CustomerSimulation customerSimulation;
-    private final EmailSimulation emailSimulation;
     private final EventLogger logger;
     private final TokenizerService tokenizerService;
     private final SubAgent subAgent;
     private final MemoryManager memoryManager;
+    private final ToolService toolService;
+    private final SafetyService safetyService;
+    private final StateCloner stateCloner;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private SimulationState state;
@@ -61,34 +59,18 @@ public class SimulationEngine {
     private boolean humanHelpTimeoutEnabled = false;
     private long helpRequestTimestamp = 0;
 
-    public SimulationEngine(LLMServiceProvider llmServiceProvider, SimulationConfig config, CustomerSimulation cs, EmailSimulation es, EventLogger logger, TokenizerService ts, SubAgent subAgent, MemoryManager memoryManager) {
-        this.llmServiceProvider = llmServiceProvider;
-        this.config = config;
+    public SimulationEngine(LLMServiceFactory llmServiceFactory, SimulationDefaults defaults, CustomerSimulation cs, EventLogger logger, TokenizerService ts, SubAgent subAgent, MemoryManager memoryManager, ToolService toolService, SafetyService safetyService, StateCloner stateCloner) {
+        this.llmServiceFactory = llmServiceFactory;
+        this.defaults = defaults;
         this.customerSimulation = cs;
-        this.emailSimulation = es;
         this.logger = logger;
         this.tokenizerService = ts;
         this.subAgent = subAgent;
         this.memoryManager = memoryManager;
-        initializeTools();
+        this.toolService = toolService;
+        this.safetyService = safetyService;
+        this.stateCloner = stateCloner;
         reset();
-    }
-
-    private void initializeTools() {
-        this.availableTools = new HashMap<>();
-        availableTools.put("set_prices", new SetPricesTool(config));
-        availableTools.put("restock_machine", new RestockMachineTool(config));
-        availableTools.put("read_email", new ReadEmailTool());
-        availableTools.put("collect_cash", new CollectCashTool());
-        availableTools.put("get_money_balance", new GetMoneyBalanceTool());
-        availableTools.put("view_inventory", new ViewInventoryTool());
-        availableTools.put("internet_search", new InternetSearchTool());
-        availableTools.put("purchase_from_supplier", new PurchaseFromSupplierTool());
-        availableTools.put("view_email_history", new ViewEmailHistoryTool());
-        availableTools.put(IDLE_TOOL, (params, state) -> "Agent is idle, thinking about its next move.");
-        availableTools.put(HUMAN_HELP_TOOL, (params, state) -> "Agent has requested human intervention. The simulation is paused.");
-        availableTools.put("write_to_memory", new WriteToMemoryTool(memoryManager));
-        availableTools.put("read_from_memory", new ReadFromMemoryTool(memoryManager));
     }
 
     public void start(String provider, String apiKey, String modelName, String persona, int maxTurns, boolean verboseLogging, boolean humanHelpTimeout, boolean disableHumanHelp) {
@@ -99,19 +81,12 @@ public class SimulationEngine {
         this.verboseLoggingEnabled = verboseLogging;
         this.humanHelpTimeoutEnabled = humanHelpTimeout;
 
-        llmServiceProvider.setActiveService(provider, apiKey, modelName);
+        llmServiceFactory.configureActiveService(provider, apiKey, modelName);
+        this.availableTools = toolService.getAvailableTools(disableHumanHelp);
 
-        this.mainAgent = new MainAgent("MainAgent", llmServiceProvider.getActiveService(), logger, tokenizerService, memoryManager);
-        
-        availableTools.put("compose_email_to_contact", new ComposeEmailToContactTool(emailSimulation, llmServiceProvider));
-        availableTools.put("wait_for_next_day", new WaitForNextDayTool(customerSimulation));
-
-        if (disableHumanHelp) {
-            availableTools.remove(HUMAN_HELP_TOOL);
-        }
-
+        this.mainAgent = new MainAgent("MainAgent", llmServiceFactory.getActiveService(), logger, tokenizerService, memoryManager);
         mainAgent.setPersona(persona);
-        this.maxTurns = maxTurns > 0 ? maxTurns : config.getSimulation().getMaxTurns();
+        this.maxTurns = maxTurns > 0 ? maxTurns : defaults.getSimulation().getMaxTurns();
         
         logger.log("SIMULATION_SETUP", "SimulationEngine", "Initializing item demand profiles...");
         customerSimulation.initializeItemDemand(state.getStorage().getItems().values());
@@ -164,23 +139,20 @@ public class SimulationEngine {
 
         try {
             int lastDayProcessed = state.getDay() - 1;
-            // The main loop now also checks if the disableHumanHelp flag is on, to prevent LLM hallucinations from pausing the sim.
             boolean isHumanHelpDisabled = !availableTools.containsKey(HUMAN_HELP_TOOL);
 
             while (running.get() && state.getTurn() <= maxTurns) {
                 while (paused.get()) {
-                    // --- START: MODIFICATION FOR TIMEOUT ---
                     if (humanHelpTimeoutEnabled && helpRequestTimestamp > 0 &&
                         (System.currentTimeMillis() - helpRequestTimestamp > HUMAN_HELP_TIMEOUT_MS)) {
                         
                         logger.log("HUMAN_INTERVENTION", "SimulationEngine", "Human help timeout reached. Resuming simulation automatically.");
-                        mainAgent.setHumanOverrideAction(new Action(IDLE_TOOL, "{}")); // Force an idle action
+                        mainAgent.setHumanOverrideAction(new Action(IDLE_TOOL, "{}"));
                         helpRequestTimestamp = 0;
                         paused.set(false);
                         status = "Running";
-                        break; // Exit the paused loop
+                        break;
                     }
-                    // --- END: MODIFICATION FOR TIMEOUT ---
                     Thread.sleep(100);
                 }
 
@@ -189,24 +161,29 @@ public class SimulationEngine {
                     lastDayProcessed = state.getDay();
                 }
 
-                Action plannedAction = mainAgent.act(state, availableTools);
+                Action plannedAction = mainAgent.act(stateCloner.clone(state), availableTools);
                 logger.log("TOOL_CALL", mainAgent.getName(), "Planned action: " + plannedAction.toolName());
 
-                // --- START: MODIFICATION FOR DISABLING HELP TOOL ---
+                safetyService.recordAction(plannedAction);
+                if (safetyService.isMeltdownDetected()) {
+                    status = "Error: Meltdown detected. Agent is stuck in a loop. Halting simulation.";
+                    logger.log("ERROR", "SafetyService", status);
+                    running.set(false);
+                    continue;
+                }
+
                 if (HUMAN_HELP_TOOL.equals(plannedAction.toolName())) {
                     if (isHumanHelpDisabled) {
-                        // If the LLM hallucinates a call to the disabled tool, log it and treat it as an idle action.
                         logger.log("ERROR", mainAgent.getName(), "Agent attempted to call 'ask_for_human_help' but it was disabled. Forcing idle action.");
                         plannedAction = new Action(IDLE_TOOL, "{}");
                     } else {
                         status = "Awaiting Human Input";
                         paused.set(true);
-                        helpRequestTimestamp = System.currentTimeMillis(); // Start the timeout timer
+                        helpRequestTimestamp = System.currentTimeMillis();
                         logger.log("HUMAN_INTERVENTION", mainAgent.getName(), "Agent requested help. Pausing simulation.");
-                        continue; // Skip to the next loop iteration to wait for input
+                        continue;
                     }
                 }
-                // --- END: MODIFICATION FOR DISABLING HELP TOOL ---
                 
                 String result = subAgent.execute(plannedAction, state, availableTools);
                 logger.log("TOOL_RESULT", subAgent.getName(), "Execution finished.", Map.of("result", result));
@@ -223,7 +200,7 @@ public class SimulationEngine {
                 logVerbose("TURN_DATA", "SimulationEngine", turnDetails);
 
                 state.incrementTurn();
-                Thread.sleep(config.getSimulation().getTurnDelayMs());
+                Thread.sleep(defaults.getSimulation().getTurnDelayMs());
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -234,6 +211,8 @@ public class SimulationEngine {
         } finally {
             if (state.getTurn() > maxTurns) {
                 status = "Finished";
+            }
+            if (!status.startsWith("Error")) {
                 running.set(false);
             }
         }
@@ -246,7 +225,6 @@ public class SimulationEngine {
             todaysDeliveries.forEach((itemName, quantity) -> {
                 Item masterItem = state.getStorage().getItem(itemName);
                 if (masterItem == null) {
-                    // Fallback to product catalog if not in storage
                     masterItem = state.getProductCatalog().get(itemName);
                 }
 
@@ -284,9 +262,10 @@ public class SimulationEngine {
             }
         }
         executor = Executors.newSingleThreadExecutor(); 
-        this.state = new SimulationState(config.getSimulation().getInitialCashBalance(), config.getSimulation().getDailyFee()); 
+        this.state = new SimulationState(defaults.getSimulation().getInitialCashBalance(), defaults.getSimulation().getDailyFee()); 
         this.logger.clear(); 
         this.memoryManager.reset();
+        this.safetyService.reset();
         this.status = "Idle"; 
         this.paused.set(false); 
 
@@ -296,7 +275,7 @@ public class SimulationEngine {
     }
 
     public double calculateNetWorth() { 
-        if (state == null) return config.getSimulation().getInitialCashBalance();
+        if (state == null) return defaults.getSimulation().getInitialCashBalance();
         double inventoryValue = state.getStorage().getItems().values().stream()
                 .mapToDouble(item -> item.getQuantity() * item.getWholesaleCost()).sum();
         inventoryValue += state.getVendingMachine().getItems().values().stream()

@@ -1,6 +1,6 @@
 package com.aiexpert.vendingbench.tool.vending;
 
-import com.aiexpert.vendingbench.config.SimulationConfig;
+import com.aiexpert.vendingbench.config.SimulationDefaults;
 import com.aiexpert.vendingbench.model.Item;
 import com.aiexpert.vendingbench.model.SimulationState;
 import com.aiexpert.vendingbench.tool.Tool;
@@ -8,10 +8,10 @@ import com.aiexpert.vendingbench.util.ValidationUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 
 public class SetPricesTool implements Tool {
-    private final SimulationConfig config;
+    private final SimulationDefaults defaults;
 
-    public SetPricesTool(SimulationConfig config) {
-        this.config = config;
+    public SetPricesTool(SimulationDefaults defaults) {
+        this.defaults = defaults;
     }
 
     @Override
@@ -29,7 +29,7 @@ public class SetPricesTool implements Tool {
 
             try {
                 ValidationUtils.validateItemName(itemName);
-                ValidationUtils.validatePrice(price, config.getSimulation().getMinItemPrice(), config.getSimulation().getMaxItemPrice());
+                ValidationUtils.validatePrice(price, defaults.getSimulation().getMinItemPrice(), defaults.getSimulation().getMaxItemPrice());
             } catch (IllegalArgumentException e) {
                 resultBuilder.append("Failed to set price for ").append(itemName).append(": ").append(e.getMessage()).append("\n");
                 continue;

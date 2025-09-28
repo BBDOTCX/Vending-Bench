@@ -1,7 +1,7 @@
 package com.aiexpert.vendingbench.environment;
 
 import com.aiexpert.vendingbench.llm.LLMService;
-import com.aiexpert.vendingbench.llm.LLMServiceProvider;
+import com.aiexpert.vendingbench.llm.LLMServiceFactory;
 import com.aiexpert.vendingbench.logging.EventLogger;
 import com.aiexpert.vendingbench.model.Inventory;
 import com.aiexpert.vendingbench.model.Item;
@@ -18,18 +18,18 @@ import java.util.Random;
 
 @Service
 public class CustomerSimulation {
-    private final LLMServiceProvider llmServiceProvider;
+    private final LLMServiceFactory llmServiceFactory;
     private final EventLogger logger;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final Random random = new Random();
 
-    public CustomerSimulation(LLMServiceProvider llmServiceProvider, EventLogger logger) {
-        this.llmServiceProvider = llmServiceProvider;
+    public CustomerSimulation(LLMServiceFactory llmServiceFactory, EventLogger logger) {
+        this.llmServiceFactory = llmServiceFactory;
         this.logger = logger;
     }
 
     public void initializeItemDemand(Collection<Item> items) {
-        LLMService llmService = llmServiceProvider.getActiveService();
+        LLMService llmService = llmServiceFactory.getActiveService();
         for (Item item : items) {
             String prompt = String.format(
                 "You are a market analyst. For a vending machine item '%s', provide a realistic price elasticity, a reference price in USD, and a base daily sales number. " +
