@@ -19,6 +19,11 @@ public class PurchaseFromSupplierTool implements Tool {
             return "Error: You must provide a list of 'items' with 'name' and 'quantity' to purchase.";
         }
 
+        // --- NEW: Add a chance for the entire communication to fail ---
+        if (random.nextDouble() < 0.05) { // 5% chance of total failure
+            return "Error: Supplier communication failed. Could not reach the supplier. Please try again later.";
+        }
+
         double totalCost = 0;
         Map<String, Integer> itemsToOrder = new HashMap<>();
         StringBuilder errorBuilder = new StringBuilder();
@@ -35,16 +40,21 @@ public class PurchaseFromSupplierTool implements Tool {
                 continue;
             }
 
-            // Check against the permanent product catalog, not the changing storage inventory.
             Item masterItem = state.getProductCatalog().get(name);
             if (masterItem == null) {
                 errorBuilder.append("Item '").append(name).append("' is not a valid item and cannot be ordered.\n");
                 continue;
             }
 
-            double wholesaleCost = masterItem.getWholesaleCost();
-            totalCost += wholesaleCost * quantity;
-            itemsToOrder.put(name, quantity);
+            // --- NEW: Add realism to quantity and pricing ---
+            double priceMultiplier = 1.0 + (random.nextDouble() - 0.5) * 0.1; // Price can fluctuate by +/- 5%
+            double wholesaleCost = masterItem.getWholesaleCost() * priceMultiplier;
+            
+            // 15% chance of a partial shipment (delivering 60-90% of the order)
+            int finalQuantity = (random.nextDouble() < 0.15) ? (int) (quantity * (0.6 + random.nextDouble() * 0.3)) : quantity;
+            
+            totalCost += wholesaleCost * finalQuantity;
+            itemsToOrder.put(name, finalQuantity);
         }
         
         if (!errorBuilder.isEmpty()) {
@@ -60,11 +70,12 @@ public class PurchaseFromSupplierTool implements Tool {
         }
 
         state.setCashBalance(state.getCashBalance() - totalCost);
-        int deliveryDays = 2 + random.nextInt(2);
+        // --- NEW: Delivery delay is now more variable ---
+        int deliveryDays = 2 + random.nextInt(4); // Delivery can take 2 to 5 days
         int arrivalDay = state.getDay() + deliveryDays;
 
         state.addPendingDelivery(arrivalDay, itemsToOrder);
 
-        return String.format("Successfully purchased items for $%.2f. They will be delivered to your storage on Day %d.", totalCost, arrivalDay);
+        return String.format("Successfully purchased items for $%.2f. They will be delivered to your storage on Day %d. Items ordered: %s", totalCost, arrivalDay, itemsToOrder.toString());
     }
 }

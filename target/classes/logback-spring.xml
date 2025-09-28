@@ -11,7 +11,7 @@
     </appender>
 
     <appender name="VerboseJsonFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOGS}/verbose.log</file>
+        <file>D:/Vending Bench/vending-bench/logs/verbose.log</file>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
             <Pattern>%msg%n</Pattern> </encoder>
 

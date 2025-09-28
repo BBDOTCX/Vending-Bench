@@ -1,4 +1,4 @@
-﻿document.addEventListener('DOMContentLoaded', () => {
+﻿﻿document.addEventListener('DOMContentLoaded', () => {
     const startButton = document.getElementById('startButton');
     const pauseButton = document.getElementById('pauseButton');
     const resetButton = document.getElementById('resetButton');
@@ -158,8 +158,7 @@
         }
 
         const humanInputSection = document.getElementById('human-input-section');
-        // <<< THIS IS THE FIX: Show the box if paused for ANY reason.
-        if (data.status === 'Awaiting Human Input' || data.status === 'Paused') {
+        if (data.status === 'Awaiting Human Input' || data.status === 'Paused' || data.status === 'Paused (by user)') {
             humanInputSection.classList.remove('hidden');
         } else {
             humanInputSection.classList.add('hidden');

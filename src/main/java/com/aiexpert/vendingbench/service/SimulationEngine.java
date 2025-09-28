@@ -11,6 +11,8 @@ import com.aiexpert.vendingbench.logging.EventLogger;
 import com.aiexpert.vendingbench.model.Item;
 import com.aiexpert.vendingbench.model.SimulationState;
 import com.aiexpert.vendingbench.tool.Tool;
+import com.aiexpert.vendingbench.tool.memory.ReadFromMemoryTool;
+import com.aiexpert.vendingbench.tool.memory.WriteToMemoryTool;
 import com.aiexpert.vendingbench.tool.remote.*;
 import com.aiexpert.vendingbench.tool.vending.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -42,29 +44,32 @@ public class SimulationEngine {
     private final CustomerSimulation customerSimulation;
     private final EmailSimulation emailSimulation;
     private final EventLogger logger;
+    private final TokenizerService tokenizerService;
+    private final SubAgent subAgent;
+    private final MemoryManager memoryManager;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private SimulationState state;
     private MainAgent mainAgent;
-    private SubAgent subAgent;
     private Map<String, Tool> availableTools;
     private ExecutorService executor;
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final AtomicBoolean paused = new AtomicBoolean(false);
     private int maxTurns;
     private String status = "Idle";
-
     private boolean verboseLoggingEnabled = true;
     private boolean humanHelpTimeoutEnabled = false;
     private long helpRequestTimestamp = 0;
 
-
-    public SimulationEngine(LLMServiceProvider llmServiceProvider, SimulationConfig config, CustomerSimulation customerSimulation, EmailSimulation emailSimulation, EventLogger logger) {
+    public SimulationEngine(LLMServiceProvider llmServiceProvider, SimulationConfig config, CustomerSimulation cs, EmailSimulation es, EventLogger logger, TokenizerService ts, SubAgent subAgent, MemoryManager memoryManager) {
         this.llmServiceProvider = llmServiceProvider;
         this.config = config;
-        this.customerSimulation = customerSimulation;
-        this.emailSimulation = emailSimulation;
+        this.customerSimulation = cs;
+        this.emailSimulation = es;
         this.logger = logger;
+        this.tokenizerService = ts;
+        this.subAgent = subAgent;
+        this.memoryManager = memoryManager;
         initializeTools();
         reset();
     }
@@ -82,6 +87,10 @@ public class SimulationEngine {
         availableTools.put("view_email_history", new ViewEmailHistoryTool());
         availableTools.put(IDLE_TOOL, (params, state) -> "Agent is idle, thinking about its next move.");
         availableTools.put(HUMAN_HELP_TOOL, (params, state) -> "Agent has requested human intervention. The simulation is paused.");
+
+        // Memory tools with vector database support
+        availableTools.put("write_to_memory", new WriteToMemoryTool(memoryManager));
+        availableTools.put("read_from_memory", new ReadFromMemoryTool(memoryManager));
     }
 
     public void start(String provider, String apiKey, String modelName, String persona, int maxTurns, boolean verboseLogging, boolean humanHelpTimeout, boolean disableHumanHelp) {
@@ -93,9 +102,10 @@ public class SimulationEngine {
         this.humanHelpTimeoutEnabled = humanHelpTimeout;
 
         llmServiceProvider.setActiveService(provider, apiKey, modelName);
+        // Configure embeddings with the same API key
+        memoryManager.configureEmbeddings(apiKey);
 
-        this.mainAgent = new MainAgent("MainAgent", llmServiceProvider.getActiveService(), logger);
-        this.subAgent = new SubAgent("SubAgent");
+        this.mainAgent = new MainAgent("MainAgent", llmServiceProvider.getActiveService(), logger, tokenizerService, memoryManager);
         
         availableTools.put("compose_email_to_contact", new ComposeEmailToContactTool(emailSimulation, llmServiceProvider));
         availableTools.put("wait_for_next_day", new WaitForNextDayTool(customerSimulation));
@@ -119,11 +129,8 @@ public class SimulationEngine {
         if (!status.equals("Finished") || turnsToAdd <= 0) {
             return;
         }
-
         logger.log("SIMULATION_UPDATE", "Human", "Adding " + turnsToAdd + " more turns to the simulation.");
-        
         this.maxTurns += turnsToAdd;
-        
         running.set(true);
         paused.set(false);
         status = "Running";
@@ -132,7 +139,6 @@ public class SimulationEngine {
 
     private void logVerbose(String type, String source, Map<String, Object> details) {
         if (!verboseLoggingEnabled) return;
-
         Map<String, Object> logMap = new HashMap<>();
         logMap.put("timestamp", Instant.now().toString());
         logMap.put("type", type);
@@ -146,7 +152,6 @@ public class SimulationEngine {
     }
 
     public void resumeWithHumanInput(String humanPrompt) {
-        // <<< THIS IS THE FIX: Allow input when paused for any reason.
         if (status.equals("Awaiting Human Input") || status.equals("Paused")) {
             logger.log("HUMAN_INTERVENTION", "Human", "Providing help: " + humanPrompt);
             Action humanAction = mainAgent.getActionFromHumanInstruction(humanPrompt, state, availableTools);
@@ -159,23 +164,12 @@ public class SimulationEngine {
 
     private void runSimulationLoop() {
         logger.log("SIMULATION_START", "SimulationEngine", "Simulation loop started.");
-        logVerbose("SIMULATION_START", "SimulationEngine", Map.of("maxTurns", maxTurns));
-        
         status = "Running";
+
         try {
-            int lastDayProcessed = state.getDay() -1;
+            int lastDayProcessed = state.getDay() - 1;
             while (running.get() && state.getTurn() <= maxTurns) {
                 while (paused.get()) {
-                    if (humanHelpTimeoutEnabled && status.equals("Awaiting Human Input") && helpRequestTimestamp > 0) {
-                        if (System.currentTimeMillis() - helpRequestTimestamp > HUMAN_HELP_TIMEOUT_MS) {
-                            logger.log("HUMAN_INTERVENTION", "SimulationEngine", "Human help timed out after 30s. Resuming.");
-                            mainAgent.setLastActionResult("No human help was provided after 30 seconds. Please try a different action.");
-                            helpRequestTimestamp = 0; 
-                            paused.set(false);
-                            status = "Running";
-                            continue;
-                        }
-                    }
                     Thread.sleep(100);
                 }
 
@@ -185,33 +179,22 @@ public class SimulationEngine {
                 }
 
                 logger.log("TURN_START", "SimulationEngine", "--- Turn " + state.getTurn() + " (Day " + state.getDay() + ") ---");
-                logVerbose("TURN_START", "SimulationEngine", Map.of("turn", state.getTurn(), "day", state.getDay(), "state", state));
+                
+                Action plannedAction = mainAgent.act(state, availableTools);
+                logger.log("TOOL_CALL", mainAgent.getName(), "Planned action: " + plannedAction.toolName());
 
-                Action action = mainAgent.act(state, availableTools);
-
-                if (HUMAN_HELP_TOOL.equals(action.toolName())) {
+                if (HUMAN_HELP_TOOL.equals(plannedAction.toolName())) {
                     status = "Awaiting Human Input";
                     paused.set(true);
-                    helpRequestTimestamp = System.currentTimeMillis(); 
+                    helpRequestTimestamp = System.currentTimeMillis();
                     logger.log("HUMAN_INTERVENTION", mainAgent.getName(), "Agent requested help. Pausing simulation.");
-                    continue; 
+                    continue;
                 }
+                
+                String result = subAgent.execute(plannedAction, state, availableTools);
+                logger.log("TOOL_RESULT", subAgent.getName(), "Execution finished.", Map.of("result", result));
 
-                if (availableTools.containsKey(action.toolName())) {
-                    logger.log("TOOL_CALL", mainAgent.getName(), "Executing tool: " + action.toolName());
-                    logVerbose("TOOL_CALL", mainAgent.getName(), Map.of("tool", action.toolName(), "parameters", action.parameters()));
-
-                    Tool tool = availableTools.get(action.toolName());
-                    String result = tool.execute(objectMapper.readTree(action.parameters()), state);
-
-                    mainAgent.setLastActionResult(result);
-                    logger.log("TOOL_RESULT", mainAgent.getName(), "Tool execution finished.", Map.of("result", result));
-                    logVerbose("TOOL_RESULT", mainAgent.getName(), Map.of("tool", action.toolName(), "result", result));
-                } else {
-                     String errorMsg = "Agent attempted to use an unknown tool: " + action.toolName();
-                     logger.log("ERROR", mainAgent.getName(), errorMsg);
-                     mainAgent.setLastActionResult(errorMsg);
-                }
+                mainAgent.updateHistory(result);
 
                 state.incrementTurn();
                 Thread.sleep(config.getTurnDelayMs());
@@ -225,31 +208,31 @@ public class SimulationEngine {
         } finally {
             if (state.getTurn() > maxTurns) {
                 status = "Finished";
-                logVerbose("SIMULATION_END", "SimulationEngine", Map.of("final_status", status, "final_turn", state.getTurn()));
                 running.set(false);
             }
         }
     }
     
     private void processDeliveries() {
-        Map<String, Integer> todaysDeliveries = state.getPendingDeliveries().remove(state.getDay());
-        if (todaysDeliveries != null && !todaysDeliveries.isEmpty()) {
-            StringBuilder deliveryReport = new StringBuilder();
-            todaysDeliveries.forEach((itemName, quantity) -> {
-                Item masterItem = state.getStorage().getItem(itemName);
-                if (masterItem != null) {
-                    state.getStorage().addOrUpdateItem(itemName, quantity, masterItem.getPrice(), masterItem.getWholesaleCost());
-                    deliveryReport.append(String.format("%d units of %s, ", quantity, itemName));
-                } else {
-                    logger.log("ERROR", "SimulationEngine", "Cannot deliver unknown item: " + itemName);
-                }
-            });
-            if (deliveryReport.length() > 0) {
-                 String reportStr = "Delivery arrived: " + deliveryReport.substring(0, deliveryReport.length() - 2) + ".";
-                 logger.log("DELIVERY_RECEIVED", "SimulationEngine", reportStr);
+    Map<String, Integer> todaysDeliveries = state.getPendingDeliveries().remove(state.getDay());
+    if (todaysDeliveries != null && !todaysDeliveries.isEmpty()) {
+        StringBuilder deliveryReport = new StringBuilder();
+        todaysDeliveries.forEach((itemName, quantity) -> {
+            // Check against product catalog instead of current storage
+            Item catalogItem = state.getProductCatalog().get(itemName);
+            if (catalogItem != null) {
+                state.getStorage().addOrUpdateItem(itemName, quantity, catalogItem.getPrice(), catalogItem.getWholesaleCost());
+                deliveryReport.append(String.format("%d units of %s, ", quantity, itemName));
+            } else {
+                logger.log("ERROR", "SimulationEngine", "Cannot deliver unknown item: " + itemName);
             }
+        });
+        if (deliveryReport.length() > 0) {
+             String reportStr = "Delivery arrived: " + deliveryReport.substring(0, deliveryReport.length() - 2) + ".";
+             logger.log("DELIVERY_RECEIVED", "SimulationEngine", reportStr);
         }
     }
+}
 
     public void togglePause() { 
         if(running.get() && !status.equals("Awaiting Human Input")){ 
@@ -273,12 +256,13 @@ public class SimulationEngine {
         executor = Executors.newSingleThreadExecutor(); 
         this.state = new SimulationState(config.getInitialCashBalance(), config.getDailyFee()); 
         this.logger.clear(); 
+        this.memoryManager.reset();
         this.status = "Idle"; 
         this.paused.set(false); 
+
         if (mainAgent == null) {
-            mainAgent = new MainAgent("MainAgent", null, logger);
+            mainAgent = new MainAgent("MainAgent", null, logger, tokenizerService, memoryManager);
         }
-        this.mainAgent.setLastActionResult(null); 
     }
 
     public double calculateNetWorth() { 
