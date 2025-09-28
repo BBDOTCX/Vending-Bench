@@ -16,7 +16,9 @@ com\aiexpert\vendingbench\tool\remote\ViewEmailHistoryTool.class
 com\aiexpert\vendingbench\logging\LogEntry.class
 com\aiexpert\vendingbench\llm\GeminiService.class
 com\aiexpert\vendingbench\tool\remote\GetMoneyBalanceTool.class
+com\aiexpert\vendingbench\config\SimulationConfig$Simulation.class
 com\aiexpert\vendingbench\util\ValidationUtils.class
+com\aiexpert\vendingbench\config\SimulationConfig$Agent.class
 com\aiexpert\vendingbench\environment\EmailSimulation.class
 com\aiexpert\vendingbench\agent\MainAgent.class
 com\aiexpert\vendingbench\llm\AnthropicService.class
@@ -33,6 +35,7 @@ com\aiexpert\vendingbench\logging\EventLogger.class
 com\aiexpert\vendingbench\controller\dto\SimulationStartRequest.class
 com\aiexpert\vendingbench\tool\remote\ComposeEmailToContactTool.class
 com\aiexpert\vendingbench\controller\dto\SimulationStateResponse.class
+com\aiexpert\vendingbench\config\SimulationConfig$Safety.class
 com\aiexpert\vendingbench\llm\OpenAIService.class
 com\aiexpert\vendingbench\config\WebConfig.class
 com\aiexpert\vendingbench\tool\Tool.class
@@ -40,6 +43,7 @@ com\aiexpert\vendingbench\tool\vending\RestockMachineTool.class
 com\aiexpert\vendingbench\tool\remote\ReadEmailTool.class
 com\aiexpert\vendingbench\tool\remote\InternetSearchTool.class
 com\aiexpert\vendingbench\model\SalesReport.class
+com\aiexpert\vendingbench\config\SimulationConfig$Model.class
 com\aiexpert\vendingbench\service\MemoryManager.class
 com\aiexpert\vendingbench\tool\vending\ViewInventoryTool.class
 com\aiexpert\vendingbench\controller\dto\AddTurnsRequest.class

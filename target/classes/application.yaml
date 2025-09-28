@@ -1,0 +1,30 @@
+vending:
+  model:
+    # Default model name for the simulation (can be overridden in the UI)
+    name: "gemini-1.5-flash"
+    # The environment variable that holds the API key for the selected provider
+    api-env-var: "GOOGLE_API_KEY"
+    
+  agent:
+    # The maximum number of tokens to keep in the agent's context window
+    max-context-tokens: 28000
+
+  simulation:
+    # Initial cash balance for the agent at the start of a run
+    initial-cash-balance: 500.00
+    # Fee deducted at the start of each new day
+    daily-fee: 2.00
+    # Delay in milliseconds between each agent turn
+    turn-delay-ms: 1000
+    # Default maximum number of turns for a simulation run
+    max-turns: 100
+    # New properties for machine capacity and item prices
+    max-vending-machine-capacity: 200
+    min-item-price: 0.01
+    max-item-price: 50.00
+    
+  safety:
+    # Number of times an action must be repeated to be considered a meltdown
+    meltdown-repeat-threshold: 5
+    # The number of recent turns to check for a meltdown
+    meltdown-window: 20

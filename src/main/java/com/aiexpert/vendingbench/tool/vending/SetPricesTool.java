@@ -29,7 +29,7 @@ public class SetPricesTool implements Tool {
 
             try {
                 ValidationUtils.validateItemName(itemName);
-                ValidationUtils.validatePrice(price, config.getMinItemPrice(), config.getMaxItemPrice());
+                ValidationUtils.validatePrice(price, config.getSimulation().getMinItemPrice(), config.getSimulation().getMaxItemPrice());
             } catch (IllegalArgumentException e) {
                 resultBuilder.append("Failed to set price for ").append(itemName).append(": ").append(e.getMessage()).append("\n");
                 continue;

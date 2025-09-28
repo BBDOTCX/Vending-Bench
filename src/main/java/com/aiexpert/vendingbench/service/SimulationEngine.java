@@ -87,8 +87,6 @@ public class SimulationEngine {
         availableTools.put("view_email_history", new ViewEmailHistoryTool());
         availableTools.put(IDLE_TOOL, (params, state) -> "Agent is idle, thinking about its next move.");
         availableTools.put(HUMAN_HELP_TOOL, (params, state) -> "Agent has requested human intervention. The simulation is paused.");
-
-        // Memory tools with vector database support
         availableTools.put("write_to_memory", new WriteToMemoryTool(memoryManager));
         availableTools.put("read_from_memory", new ReadFromMemoryTool(memoryManager));
     }
@@ -102,8 +100,6 @@ public class SimulationEngine {
         this.humanHelpTimeoutEnabled = humanHelpTimeout;
 
         llmServiceProvider.setActiveService(provider, apiKey, modelName);
-        // Configure embeddings with the same API key
-        memoryManager.configureEmbeddings(apiKey);
 
         this.mainAgent = new MainAgent("MainAgent", llmServiceProvider.getActiveService(), logger, tokenizerService, memoryManager);
         
@@ -115,7 +111,7 @@ public class SimulationEngine {
         }
 
         mainAgent.setPersona(persona);
-        this.maxTurns = maxTurns > 0 ? maxTurns : config.getMaxTurns();
+        this.maxTurns = maxTurns > 0 ? maxTurns : config.getSimulation().getMaxTurns();
         
         logger.log("SIMULATION_SETUP", "SimulationEngine", "Initializing item demand profiles...");
         customerSimulation.initializeItemDemand(state.getStorage().getItems().values());
@@ -197,7 +193,7 @@ public class SimulationEngine {
                 mainAgent.updateHistory(result);
 
                 state.incrementTurn();
-                Thread.sleep(config.getTurnDelayMs());
+                Thread.sleep(config.getSimulation().getTurnDelayMs());
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -214,25 +210,24 @@ public class SimulationEngine {
     }
     
     private void processDeliveries() {
-    Map<String, Integer> todaysDeliveries = state.getPendingDeliveries().remove(state.getDay());
-    if (todaysDeliveries != null && !todaysDeliveries.isEmpty()) {
-        StringBuilder deliveryReport = new StringBuilder();
-        todaysDeliveries.forEach((itemName, quantity) -> {
-            // Check against product catalog instead of current storage
-            Item catalogItem = state.getProductCatalog().get(itemName);
-            if (catalogItem != null) {
-                state.getStorage().addOrUpdateItem(itemName, quantity, catalogItem.getPrice(), catalogItem.getWholesaleCost());
-                deliveryReport.append(String.format("%d units of %s, ", quantity, itemName));
-            } else {
-                logger.log("ERROR", "SimulationEngine", "Cannot deliver unknown item: " + itemName);
+        Map<String, Integer> todaysDeliveries = state.getPendingDeliveries().remove(state.getDay());
+        if (todaysDeliveries != null && !todaysDeliveries.isEmpty()) {
+            StringBuilder deliveryReport = new StringBuilder();
+            todaysDeliveries.forEach((itemName, quantity) -> {
+                Item masterItem = state.getStorage().getItem(itemName);
+                if (masterItem != null) {
+                    state.getStorage().addOrUpdateItem(itemName, quantity, masterItem.getPrice(), masterItem.getWholesaleCost());
+                    deliveryReport.append(String.format("%d units of %s, ", quantity, itemName));
+                } else {
+                    logger.log("ERROR", "SimulationEngine", "Cannot deliver unknown item: " + itemName);
+                }
+            });
+            if (deliveryReport.length() > 0) {
+                 String reportStr = "Delivery arrived: " + deliveryReport.substring(0, deliveryReport.length() - 2) + ".";
+                 logger.log("DELIVERY_RECEIVED", "SimulationEngine", reportStr);
             }
-        });
-        if (deliveryReport.length() > 0) {
-             String reportStr = "Delivery arrived: " + deliveryReport.substring(0, deliveryReport.length() - 2) + ".";
-             logger.log("DELIVERY_RECEIVED", "SimulationEngine", reportStr);
         }
     }
-}
 
     public void togglePause() { 
         if(running.get() && !status.equals("Awaiting Human Input")){ 
@@ -254,7 +249,7 @@ public class SimulationEngine {
             }
         }
         executor = Executors.newSingleThreadExecutor(); 
-        this.state = new SimulationState(config.getInitialCashBalance(), config.getDailyFee()); 
+        this.state = new SimulationState(config.getSimulation().getInitialCashBalance(), config.getSimulation().getDailyFee()); 
         this.logger.clear(); 
         this.memoryManager.reset();
         this.status = "Idle"; 
@@ -266,7 +261,7 @@ public class SimulationEngine {
     }
 
     public double calculateNetWorth() { 
-        if (state == null) return config.getInitialCashBalance();
+        if (state == null) return config.getSimulation().getInitialCashBalance();
         double inventoryValue = state.getStorage().getItems().values().stream()
                 .mapToDouble(item -> item.getQuantity() * item.getWholesaleCost()).sum();
         inventoryValue += state.getVendingMachine().getItems().values().stream()

@@ -49,7 +49,7 @@ public class RestockMachineTool implements Tool {
                 continue;
             }
 
-            if (currentVendingTotal + quantity > config.getMaxVendingMachineCapacity()) {
+            if (currentVendingTotal + quantity > config.getSimulation().getMaxVendingMachineCapacity()) {
                 resultBuilder.append("Skipped ").append(itemName).append(": Would exceed vending machine capacity.\n");
                 continue;
             }
@@ -62,7 +62,6 @@ public class RestockMachineTool implements Tool {
 
             int amountToMove = Math.min(quantity, storageItem.getQuantity());
 
-            // Create a new item for the vending machine
             Item newItem = new Item(
                 storageItem.getName(),
                 amountToMove,
@@ -70,12 +69,10 @@ public class RestockMachineTool implements Tool {
                 storageItem.getWholesaleCost()
             );
             
-            // Manually copy the economic profile from the storage item to the new item
             newItem.setElasticity(storageItem.getElasticity());
             newItem.setBaseSales(storageItem.getBaseSales());
             newItem.setReferencePrice(storageItem.getReferencePrice());
 
-            // Remove from storage and add the complete new item to the machine
             state.getStorage().removeItem(itemName, amountToMove);
             state.getVendingMachine().addItem(newItem);
 
