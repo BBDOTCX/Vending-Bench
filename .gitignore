@@ -1,0 +1,13 @@
+# Compiled Java class files and artifacts
+/target/
+
+# Log files
+/logs/
+
+# IDE-specific files
+.idea/
+.vscode/
+*.iml
+
+# Other generated files
+*.log
