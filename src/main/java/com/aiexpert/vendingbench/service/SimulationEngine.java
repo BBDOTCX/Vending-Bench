@@ -164,8 +164,23 @@ public class SimulationEngine {
 
         try {
             int lastDayProcessed = state.getDay() - 1;
+            // The main loop now also checks if the disableHumanHelp flag is on, to prevent LLM hallucinations from pausing the sim.
+            boolean isHumanHelpDisabled = !availableTools.containsKey(HUMAN_HELP_TOOL);
+
             while (running.get() && state.getTurn() <= maxTurns) {
                 while (paused.get()) {
+                    // --- START: MODIFICATION FOR TIMEOUT ---
+                    if (humanHelpTimeoutEnabled && helpRequestTimestamp > 0 &&
+                        (System.currentTimeMillis() - helpRequestTimestamp > HUMAN_HELP_TIMEOUT_MS)) {
+                        
+                        logger.log("HUMAN_INTERVENTION", "SimulationEngine", "Human help timeout reached. Resuming simulation automatically.");
+                        mainAgent.setHumanOverrideAction(new Action(IDLE_TOOL, "{}")); // Force an idle action
+                        helpRequestTimestamp = 0;
+                        paused.set(false);
+                        status = "Running";
+                        break; // Exit the paused loop
+                    }
+                    // --- END: MODIFICATION FOR TIMEOUT ---
                     Thread.sleep(100);
                 }
 
@@ -177,13 +192,21 @@ public class SimulationEngine {
                 Action plannedAction = mainAgent.act(state, availableTools);
                 logger.log("TOOL_CALL", mainAgent.getName(), "Planned action: " + plannedAction.toolName());
 
+                // --- START: MODIFICATION FOR DISABLING HELP TOOL ---
                 if (HUMAN_HELP_TOOL.equals(plannedAction.toolName())) {
-                    status = "Awaiting Human Input";
-                    paused.set(true);
-                    helpRequestTimestamp = System.currentTimeMillis();
-                    logger.log("HUMAN_INTERVENTION", mainAgent.getName(), "Agent requested help. Pausing simulation.");
-                    continue;
+                    if (isHumanHelpDisabled) {
+                        // If the LLM hallucinates a call to the disabled tool, log it and treat it as an idle action.
+                        logger.log("ERROR", mainAgent.getName(), "Agent attempted to call 'ask_for_human_help' but it was disabled. Forcing idle action.");
+                        plannedAction = new Action(IDLE_TOOL, "{}");
+                    } else {
+                        status = "Awaiting Human Input";
+                        paused.set(true);
+                        helpRequestTimestamp = System.currentTimeMillis(); // Start the timeout timer
+                        logger.log("HUMAN_INTERVENTION", mainAgent.getName(), "Agent requested help. Pausing simulation.");
+                        continue; // Skip to the next loop iteration to wait for input
+                    }
                 }
+                // --- END: MODIFICATION FOR DISABLING HELP TOOL ---
                 
                 String result = subAgent.execute(plannedAction, state, availableTools);
                 logger.log("TOOL_RESULT", subAgent.getName(), "Execution finished.", Map.of("result", result));

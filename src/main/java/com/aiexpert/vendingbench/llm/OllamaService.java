@@ -2,8 +2,10 @@ package com.aiexpert.vendingbench.llm;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
-
+import reactor.netty.http.client.HttpClient;
+import java.time.Duration;
 import java.util.Map;
 
 public class OllamaService implements LLMService {
@@ -21,8 +23,13 @@ public class OllamaService implements LLMService {
 
     @Override
     public String generate(String prompt) {
+        // Configure HttpClient with a generous response timeout for model loading
+        HttpClient httpClient = HttpClient.create()
+                .responseTimeout(Duration.ofMinutes(3)); // Timeout after 3 minutes
+
         WebClient webClient = WebClient.builder()
                 .baseUrl(ollamaApiUrl)
+                .clientConnector(new ReactorClientHttpConnector(httpClient)) // Apply timeout settings
                 .build();
 
         Map<String, Object> requestBody = Map.of(
